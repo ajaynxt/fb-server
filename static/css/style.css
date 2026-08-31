@@ -1,32 +1,32 @@
 :root {
-    --bg-primary: #07090e;
-    --bg-secondary: #0e131f;
-    --bg-card: #121828;
-    --bg-card-hover: #182238;
-    --bg-input: #090d16;
+    --bg-primary: #000000;
+    --bg-secondary: #080808;
+    --bg-card: #0c0c0c;
+    --bg-card-hover: #141414;
+    --bg-input: #050505;
     
-    --border-color: #1c273e;
-    --border-glow: rgba(0, 132, 255, 0.35);
+    --border-color: #222222;
+    --border-glow: rgba(0, 255, 102, 0.3);
     
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
 
     --accent-blue: #0084ff;
     --accent-cyan: #00f2fe;
     --accent-purple: #a855f7;
-    --accent-green: #10b981;
-    --accent-red: #f43f5e;
-    --accent-amber: #f59e0b;
-    --accent-magenta: #ec4899;
+    --accent-green: #00ff66;
+    --accent-red: #ff1744;
+    --accent-amber: #ffab00;
+    --accent-magenta: #ff007f;
     
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
     --radius-full: 9999px;
     
-    --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.65);
-    --shadow-glow: 0 0 25px rgba(0, 242, 254, 0.2);
+    --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.85);
+    --shadow-glow: 0 0 25px rgba(0, 255, 102, 0.2);
     
     --font-main: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-heading: 'Outfit', sans-serif;
@@ -1757,4 +1757,101 @@ body.theme-bright .terminal-window {
 .account-actions {
     display: flex;
     gap: 6px;
+}
+
+/* =========================================================================
+   HACKER TERMINAL CONSOLE STYLES & SCANLINES
+   ========================================================================= */
+.hacker-terminal-card {
+    background: #06080c !important;
+    border: 1px solid #1e293b !important;
+    box-shadow: 0 0 35px rgba(0, 255, 102, 0.08) !important;
+}
+
+.hacker-term-header {
+    background: #090d14 !important;
+    border-bottom: 1px solid #1e293b !important;
+    padding: 10px 14px !important;
+}
+
+.hacker-terminal-wrapper {
+    background: #030508 !important;
+    min-height: 400px;
+    max-height: 460px;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* CRT Scanline overlay */
+.terminal-scanlines {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.28) 50%
+    ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+    );
+    background-size: 100% 3px, 6px 100%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.55;
+}
+
+.hacker-body {
+    padding: 14px;
+    color: #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.hacker-body .log-row {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    margin-bottom: 5px;
+    word-break: break-word;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.hacker-body .log-row.success .log-text {
+    color: #00ff66 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+    font-weight: 600;
+}
+
+.hacker-body .log-row.typing .log-text {
+    color: #00f2fe !important;
+    text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
+.hacker-body .log-row.seen .log-text {
+    color: #ff007f !important;
+    text-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+}
+
+.hacker-body .log-row.warn .log-text {
+    color: #ffab00 !important;
+}
+
+.hacker-body .log-row.error .log-text {
+    color: #ff1744 !important;
+    text-shadow: 0 0 10px rgba(255, 23, 68, 0.5);
+    font-weight: 700;
+}
+
+@keyframes blinkCursor {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+.hacker-cursor {
+    display: inline-block;
+    color: var(--accent-green);
+    font-weight: 900;
+    animation: blinkCursor 0.8s infinite;
 }

@@ -1342,16 +1342,17 @@ document.addEventListener("DOMContentLoaded", () => {
         row.className = `log-row ${log.level.toLowerCase()}`;
 
         let tagClass = "tag-info";
-        if (log.level === "SUCCESS") tagClass = "tag-success";
-        else if (log.level === "TYPING") tagClass = "tag-typing";
-        else if (log.level === "SEEN") tagClass = "tag-seen";
-        else if (log.level === "COMMENT") tagClass = "tag-comment";
-        else if (log.level === "WARN") tagClass = "tag-warn";
-        else if (log.level === "ERROR") tagClass = "tag-error";
+        let levelIcon = "⚡";
+        if (log.level === "SUCCESS") { tagClass = "tag-success"; levelIcon = "✅"; }
+        else if (log.level === "TYPING") { tagClass = "tag-typing"; levelIcon = "⌨️"; }
+        else if (log.level === "SEEN") { tagClass = "tag-seen"; levelIcon = "👁️"; }
+        else if (log.level === "COMMENT") { tagClass = "tag-comment"; levelIcon = "💬"; }
+        else if (log.level === "WARN") { tagClass = "tag-warn"; levelIcon = "⚠️"; }
+        else if (log.level === "ERROR") { tagClass = "tag-error"; levelIcon = "❌"; }
 
         row.innerHTML = `
-            <span class="log-time">[${log.timestamp}]</span>
-            <span class="log-tag ${tagClass}">${log.level}</span>
+            <span class="log-time" style="color:var(--accent-cyan); font-weight:700; font-size:0.75rem;">[${log.timestamp}]</span>
+            <span class="log-tag ${tagClass}">${levelIcon} ${log.level}</span>
             <span class="log-text">${escapeHtml(log.message)}</span>
         `;
 
@@ -1362,7 +1363,7 @@ document.addEventListener("DOMContentLoaded", () => {
             terminalLogs.removeChild(terminalLogs.firstChild);
         }
 
-        if (autoScrollCheck.checked) {
+        if (autoScrollCheck && autoScrollCheck.checked) {
             terminalContainer.scrollTop = terminalContainer.scrollHeight;
         }
     }

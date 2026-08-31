@@ -523,12 +523,19 @@
                 </form>
             </section>
 
-            <!-- Right Side: Live Terminal Console -->
-            <section class="card terminal-card">
-                <div class="card-header">
-                    <div class="header-title">
-                        <i class="fa-solid fa-terminal"></i>
-                        <h2>Live Console & Real-time Logs</h2>
+            <!-- Right Side: Live Hacker Terminal Console -->
+            <section class="card terminal-card hacker-terminal-card">
+                <div class="card-header hacker-term-header">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="hacker-window-controls" style="display:flex; gap:6px;">
+                            <span class="term-dot" style="width:10px; height:10px; border-radius:50%; background:#ff5f56; display:inline-block;"></span>
+                            <span class="term-dot" style="width:10px; height:10px; border-radius:50%; background:#ffbd2e; display:inline-block;"></span>
+                            <span class="term-dot" style="width:10px; height:10px; border-radius:50%; background:#27c93f; display:inline-block;"></span>
+                        </div>
+                        <div class="header-title hacker-title" style="margin-left:6px;">
+                            <i class="fa-solid fa-terminal" style="color: var(--accent-green);"></i>
+                            <span class="term-prompt-title" style="font-family:var(--font-mono); font-size:0.85rem; font-weight:700; color:var(--accent-green);">root@ajaynxt-server:~# <span style="color:#ffffff;">[LIVE BOT INJECTOR]</span></span>
+                        </div>
                     </div>
                     <div class="terminal-actions">
                         <label class="autoscroll-toggle">
@@ -544,32 +551,46 @@
                     </div>
                 </div>
 
-                <!-- Terminal Display -->
-                <div class="terminal-wrapper" id="terminalContainer">
-                    <div class="terminal-body" id="terminalLogs">
-                        <div class="log-row info">
-                            <span class="log-time">[SYSTEM]</span>
-                            <span class="log-tag tag-info">INFO</span>
-                            <span class="log-text">FB Messenger Server Ready. Waiting for configuration...</span>
+                <!-- Terminal Display with Scanlines -->
+                <div class="terminal-wrapper hacker-terminal-wrapper" id="terminalContainer" style="position:relative; background:#040608; border-radius:0 0 var(--radius-md) var(--radius-md);">
+                    <div class="terminal-scanlines"></div>
+                    <div class="terminal-body hacker-body" id="terminalLogs" style="font-family:var(--font-mono); font-size:0.82rem; line-height:1.6;">
+                        <div class="log-row hacker-banner" style="color:#00ff66; margin-bottom:8px; font-weight:700; opacity:0.85;">
+<pre style="font-size:0.65rem; line-height:1.1; margin:0; color:var(--accent-green);">
+   _____ ____     ____  ____  ______   _____ ______ ______ _    __ ______ ____ 
+  / ____/ __ )   / __ )/ __ \/_  __/  / ___// ____// __ \/ |  / // ____// __ \
+ / /_  / __  |  / __  / / / / / /     \__ \/ __/  / /_/ /| | / // __/  / /_/ /
+/ __/ / /_/ /  / /_/ / /_/ / / /     ___/ / /___ / _, _/ | |/ // /___ / _, _/ 
+/_/   /_____/  /_____/\____/ /_/     /____/_____//_/ |_|  |___//_____//_/ |_|  
+</pre>
                         </div>
                         <div class="log-row info">
-                            <span class="log-time">[SYSTEM]</span>
+                            <span class="log-time" style="color:var(--accent-cyan);">[SYSTEM]</span>
                             <span class="log-tag tag-info">INFO</span>
-                            <span class="log-text">Auto-Seen & Real-time Auto-Typing engine initialized.</span>
+                            <span class="log-text">FB 24/7 Hacker Injection Engine Initialized. Ready for Target ID...</span>
                         </div>
+                        <div class="log-row info">
+                            <span class="log-time" style="color:var(--accent-cyan);">[SYSTEM]</span>
+                            <span class="log-tag tag-info">INFO</span>
+                            <span class="log-text">Auto-Seen, Auto-Typing & Anti-Ban Rotating India Proxy Engine Active.</span>
+                        </div>
+                    </div>
+                    <div class="terminal-active-line" style="display:flex; align-items:center; gap:8px; padding:6px 14px; background:#020304; border-top:1px solid #111827; font-family:var(--font-mono); font-size:0.8rem;">
+                        <span class="term-user-prompt" style="color:var(--accent-green); font-weight:700;">ajaynxt@fb-server:~$</span>
+                        <span class="hacker-cursor" style="color:var(--accent-green); animation:blinkCursor 0.8s infinite;">█</span>
                     </div>
                 </div>
 
                 <!-- Terminal Footer Status Bar -->
-                <div class="terminal-footer">
+                <div class="terminal-footer hacker-footer">
                     <div class="status-indicator-group">
-                        <span class="feat-badge"><i class="fa-solid fa-eye"></i> Auto-Seen: <strong>ACTIVE</strong></span>
-                        <span class="feat-badge"><i class="fa-solid fa-keyboard"></i> Auto-Typing: <strong>ACTIVE</strong></span>
-                        <span class="feat-badge"><i class="fa-solid fa-shield-halved"></i> 24/7 Watchdog: <strong>ACTIVE</strong></span>
+                        <span class="feat-badge"><i class="fa-solid fa-eye" style="color:var(--accent-green);"></i> Seen: <strong>ACTIVE</strong></span>
+                        <span class="feat-badge"><i class="fa-solid fa-keyboard" style="color:var(--accent-cyan);"></i> Typing: <strong>ACTIVE</strong></span>
+                        <span class="feat-badge"><i class="fa-solid fa-shield-halved" style="color:var(--accent-magenta);"></i> Anti-Ban: <strong>ACTIVE</strong></span>
                     </div>
                     <div class="live-activity" id="activityPulse">
-                        <span class="pulse-ring"></span>
-                        <span class="pulse-label">Server Live</span>
+                        <span class="pulse-ring" style="background:var(--accent-green); box-shadow:0 0 10px var(--accent-green);"></span>
+                        <span class="pulse-label" style="color:var(--accent-green);">SYSTEM LIVE</span>
                     </div>
                 </div>
             </section>
