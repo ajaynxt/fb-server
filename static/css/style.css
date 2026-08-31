@@ -1623,3 +1623,138 @@ input:checked + .switch-slider:before {
         margin: 10px;
     }
 }
+
+/* =========================================================================
+   BRIGHT / LIGHT THEME MODE STYLES
+   ========================================================================= */
+body.theme-bright {
+    --bg-primary: #f0f4f9;
+    --bg-secondary: #e2e8f0;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f8fafc;
+    --bg-input: #f8fafc;
+    
+    --border-color: #cbd5e1;
+    --border-glow: rgba(0, 132, 255, 0.25);
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+
+    --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px rgba(0, 132, 255, 0.15);
+}
+
+body.theme-bright .glow-1 {
+    background: radial-gradient(circle, rgba(0, 132, 255, 0.2), transparent 70%);
+}
+body.theme-bright .glow-2 {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.2), transparent 70%);
+}
+
+body.theme-bright .navbar,
+body.theme-bright .stat-card,
+body.theme-bright .card,
+body.theme-bright .server-instance-card,
+body.theme-bright .account-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-bright .form-input,
+body.theme-bright .form-textarea,
+body.theme-bright .form-select {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+body.theme-bright .form-input:focus,
+body.theme-bright .form-textarea:focus,
+body.theme-bright .form-select:focus {
+    background: #ffffff;
+    border-color: var(--accent-blue);
+}
+
+body.theme-bright .tab-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+body.theme-bright .tab-btn.active {
+    background: #ffffff;
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+body.theme-bright .terminal-window {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+/* =========================================================================
+   MULTI-ACCOUNT CARDS & VAULT
+   ========================================================================= */
+.account-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 220px;
+    flex: 1 1 calc(33.333% - 10px);
+    transition: all 0.2s ease;
+}
+
+.account-card:hover {
+    border-color: var(--accent-magenta);
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.2);
+}
+
+.account-card.active-account {
+    border-color: var(--accent-green);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.account-avatar-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-magenta), var(--accent-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.account-details {
+    flex: 1;
+    overflow: hidden;
+}
+
+.account-name-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-sub-uid {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.account-actions {
+    display: flex;
+    gap: 6px;
+}

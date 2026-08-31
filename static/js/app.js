@@ -774,6 +774,199 @@ document.addEventListener("DOMContentLoaded", () => {
     // Restore on load
     restoreSaved();
 
+    // --- Bright / Dark Theme Switcher ---
+    const btnThemeToggle = document.getElementById("btnThemeToggle");
+    const themeToggleIcon = document.getElementById("themeToggleIcon");
+    const themeToggleText = document.getElementById("themeToggleText");
+
+    function applyTheme(themeName) {
+        if (themeName === "bright") {
+            document.body.classList.add("theme-bright");
+            if (themeToggleIcon) themeToggleIcon.textContent = "🌙";
+            if (themeToggleText) themeToggleText.textContent = "Dark Screen";
+        } else {
+            document.body.classList.remove("theme-bright");
+            if (themeToggleIcon) themeToggleIcon.textContent = "☀️";
+            if (themeToggleText) themeToggleText.textContent = "Bright Screen";
+        }
+        localStorage.setItem("fb_bot_theme", themeName);
+    }
+
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener("click", () => {
+            const isCurrentlyBright = document.body.classList.contains("theme-bright");
+            applyTheme(isCurrentlyBright ? "dark" : "bright");
+            showToast(isCurrentlyBright ? "Dark Screen mode active!" : "☀️ Bright Screen mode active!", "info");
+        });
+    }
+
+    // Initialize saved theme
+    const savedTheme = localStorage.getItem("fb_bot_theme") || "dark";
+    applyTheme(savedTheme);
+
+    // =========================================================================
+    // MULTI-ACCOUNT FACEBOOK MANAGER & VAULT
+    // =========================================================================
+    const btnAddAccountModal = document.getElementById("btnAddAccountModal");
+    const addAccountModal = document.getElementById("addAccountModal");
+    const btnCloseAccountModal = document.getElementById("btnCloseAccountModal");
+    const btnCancelAccountModal = document.getElementById("btnCancelAccountModal");
+    const btnSaveNewAccount = document.getElementById("btnSaveNewAccount");
+    const accModalName = document.getElementById("accModalName");
+    const accModalToken = document.getElementById("accModalToken");
+    const accModalVerifyStatus = document.getElementById("accModalVerifyStatus");
+    const accountsGrid = document.getElementById("accountsGrid");
+    const totalAccountCount = document.getElementById("totalAccountCount");
+
+    function getSavedAccounts() {
+        try {
+            return JSON.parse(localStorage.getItem("fb_bot_saved_accounts") || "[]");
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveAccountsList(accounts) {
+        localStorage.setItem("fb_bot_saved_accounts", JSON.stringify(accounts));
+        renderAccountsList();
+    }
+
+    function renderAccountsList() {
+        if (!accountsGrid) return;
+        const accounts = getSavedAccounts();
+        if (totalAccountCount) totalAccountCount.textContent = accounts.length;
+
+        if (accounts.length === 0) {
+            accountsGrid.innerHTML = `
+                <div style="width: 100%; text-align: center; padding: 12px; font-size: 0.8rem; color: var(--text-muted); background: var(--bg-card); border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">
+                    <i class="fa-solid fa-users" style="color: var(--accent-magenta); margin-right: 6px;"></i> Koi saved account nahi hai. "➕ Add New FB Account" par click karke multiple accounts add karein!
+                </div>
+            `;
+            return;
+        }
+
+        const currentActiveToken = cookieInput ? cookieInput.value.trim() : "";
+
+        accountsGrid.innerHTML = accounts.map((acc, idx) => {
+            const isActive = currentActiveToken && (acc.token.trim() === currentActiveToken);
+            const initials = acc.name ? acc.name.slice(0, 2).toUpperCase() : "FB";
+            return `
+                <div class="account-card ${isActive ? 'active-account' : ''}">
+                    <div class="account-avatar-icon">${initials}</div>
+                    <div class="account-details">
+                        <div class="account-name-title">${acc.name || 'FB Account'}</div>
+                        <div class="account-sub-uid">UID: ${acc.uid || 'Active'}</div>
+                    </div>
+                    <div class="account-actions">
+                        ${isActive ? 
+                            `<span class="badge-tag" style="background:rgba(16,185,129,0.15); color:var(--accent-green); font-size:0.7rem;">🟢 Active</span>` :
+                            `<button type="button" class="btn-text btn-switch-account" data-idx="${idx}" style="background:rgba(0,132,255,0.15); color:var(--accent-blue); padding:4px 8px; border-radius:4px; font-size:0.72rem;">
+                                ⚡ Use
+                            </button>`
+                        }
+                        <button type="button" class="btn-text btn-delete-account" data-idx="${idx}" style="color:var(--accent-red); padding:4px 6px;" title="Delete Account">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        // Attach switch and delete handlers
+        accountsGrid.querySelectorAll(".btn-switch-account").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = parseInt(e.currentTarget.getAttribute("data-idx"));
+                const acc = accounts[idx];
+                if (acc && cookieInput) {
+                    cookieInput.value = acc.token;
+                    const cTab = document.querySelector(".tab-btn[data-tab='cookie-text']");
+                    if (cTab) cTab.click();
+                    if (statAccount) statAccount.textContent = acc.name;
+                    saveCurrentSession();
+                    renderAccountsList();
+                    showToast(`Switched to active account: ${acc.name}!`, "success");
+                }
+            });
+        });
+
+        accountsGrid.querySelectorAll(".btn-delete-account").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = parseInt(e.currentTarget.getAttribute("data-idx"));
+                if (confirm(`Kya aap "${accounts[idx]?.name}" account delete karna chahte hain?`)) {
+                    accounts.splice(idx, 1);
+                    saveAccountsList(accounts);
+                    showToast("Account delete ho gaya.", "info");
+                }
+            });
+        });
+    }
+
+    if (btnAddAccountModal) {
+        btnAddAccountModal.addEventListener("click", () => {
+            if (addAccountModal) addAccountModal.style.display = "flex";
+            if (accModalName) accModalName.value = "";
+            if (accModalToken) accModalToken.value = "";
+            if (accModalVerifyStatus) accModalVerifyStatus.style.display = "none";
+        });
+    }
+
+    if (btnCloseAccountModal) {
+        btnCloseAccountModal.addEventListener("click", () => {
+            if (addAccountModal) addAccountModal.style.display = "none";
+        });
+    }
+
+    if (btnCancelAccountModal) {
+        btnCancelAccountModal.addEventListener("click", () => {
+            if (addAccountModal) addAccountModal.style.display = "none";
+        });
+    }
+
+    if (btnSaveNewAccount) {
+        btnSaveNewAccount.addEventListener("click", async () => {
+            const name = accModalName ? accModalName.value.trim() : "";
+            const token = accModalToken ? accModalToken.value.trim() : "";
+
+            if (!token) {
+                showToast("Access Token ya Cookie paste karein!", "error");
+                return;
+            }
+
+            btnSaveNewAccount.disabled = true;
+            btnSaveNewAccount.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+
+            try {
+                const res = await fetch("/api/validate_cookie", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cookies: token })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const accName = name || data.user_name || "FB Account";
+                    const accounts = getSavedAccounts();
+                    accounts.push({
+                        name: accName,
+                        token: token,
+                        uid: data.user_id || "Active"
+                    });
+                    saveAccountsList(accounts);
+                    if (addAccountModal) addAccountModal.style.display = "none";
+                    showToast(`✅ Account "${accName}" Vault me save ho gaya!`, "success");
+                } else {
+                    showToast(`Validation fail: ${data.message || 'Invalid Token'}`, "error");
+                }
+            } catch (err) {
+                showToast("Server error verifying account.", "error");
+            } finally {
+                btnSaveNewAccount.disabled = false;
+                btnSaveNewAccount.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 💾 Save Account to Vault';
+            }
+        });
+    }
+
+    renderAccountsList();
+
     // =========================================================================
     // MULTI-SERVER RUNNER MANAGER (1 TOKEN -> MULTIPLE BOTS/TARGETS)
     // =========================================================================

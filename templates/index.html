@@ -66,6 +66,37 @@
         </div>
     </div>
 
+    <!-- Add New FB Account Modal Overlay -->
+    <div id="addAccountModal" class="auth-overlay" style="display:none;">
+        <div class="auth-card" style="max-width: 480px; text-align: left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size:1.15rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-user-plus" style="color:var(--accent-magenta);"></i> ➕ Add New Facebook Account
+                </h3>
+                <button type="button" id="btnCloseAccountModal" class="btn-text" style="font-size:1.2rem; color:var(--text-muted); cursor:pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label" for="accModalName"><i class="fa-solid fa-tag"></i> Account Label / Name:</label>
+                <input type="text" id="accModalName" class="form-input" placeholder="e.g. Ajay Main ID ya Bot Account #2">
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label class="form-label" for="accModalToken"><i class="fa-solid fa-key"></i> Access Token / Cookies:</label>
+                <textarea id="accModalToken" class="form-textarea code-font" rows="3" placeholder="Access Token (EAA...) ya Cookie paste karein"></textarea>
+            </div>
+            <div id="accModalVerifyStatus" style="display:none; font-size:0.8rem; margin-bottom:12px;"></div>
+            <div style="display:flex; gap:10px;">
+                <button type="button" id="btnSaveNewAccount" class="btn btn-primary" style="flex:1;">
+                    <i class="fa-solid fa-floppy-disk"></i> 💾 Save Account to Vault
+                </button>
+                <button type="button" id="btnCancelAccountModal" class="btn btn-outline">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Top Navbar -->
         <header class="navbar">
@@ -91,6 +122,11 @@
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
+
+                <!-- Bright / Dark Theme Toggle Button -->
+                <button type="button" id="btnThemeToggle" class="theme-toggle-pill" title="Toggle Bright / Dark Screen" style="background: rgba(255, 171, 0, 0.12); border: 1px solid rgba(255, 171, 0, 0.3); color: var(--accent-amber); padding: 6px 12px; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; transition: all 0.2s ease;">
+                    <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Bright Screen</span>
+                </button>
 
                 <div class="status-pill" id="globalStatusPill">
                     <span class="status-dot"></span>
@@ -131,6 +167,29 @@
                     <span class="stat-label">Active FB Account</span>
                     <span class="stat-value user-name-truncate" id="statAccount">Not Connected</span>
                 </div>
+            </div>
+        </section>
+
+        <!-- Multi-Account Facebook Manager (Multiple Accounts Store & Switcher) -->
+        <section class="card multi-server-card" style="margin-bottom: 20px;">
+            <div class="multi-header">
+                <div class="multi-title">
+                    <i class="fa-solid fa-users" style="color:var(--accent-magenta)"></i>
+                    <div>
+                        <h3>👥 Multi-Account Facebook Manager <span class="badge-tag" style="background:rgba(236,72,153,0.15); color:var(--accent-magenta); border-color:rgba(236,72,153,0.3)"><span id="totalAccountCount">0</span> ACCOUNTS</span></h3>
+                        <p style="font-size:0.75rem; color:var(--text-secondary)">Multiple Facebook IDs save karein aur 1-click me account switch karein.</p>
+                    </div>
+                </div>
+                <div class="multi-actions">
+                    <button type="button" id="btnAddAccountModal" class="btn-text" style="background:rgba(236,72,153,0.15); border:1px solid rgba(236,72,153,0.3); color:var(--accent-magenta); padding:8px 14px; border-radius:var(--radius-sm)">
+                        <i class="fa-solid fa-user-plus"></i> ➕ Add New FB Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved Accounts List Grid -->
+            <div class="accounts-grid" id="accountsGrid" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;">
+                <!-- Dynamically Populated by JS -->
             </div>
         </section>
 
