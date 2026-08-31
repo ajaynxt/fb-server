@@ -394,6 +394,17 @@ class FacebookSession:
             if res.status_code == 200:
                 if '"error":' not in res.text and ('"payload":' in res.text or '"actions":' in res.text or '"thread_fbid":' in res.text or 'message_id' in res.text):
                     return True, "Delivered via Web Mercury API"
+
+            # If other_user_fbid failed on personal chat, retry with thread_fbid
+            if not is_group:
+                payload_alt = dict(payload)
+                payload_alt.pop("message_batch[0][other_user_fbid]", None)
+                payload_alt["message_batch[0][thread_fbid]"] = str(thread_id)
+                payload_alt["message_batch[0][client_thread_id]"] = f"root:{thread_id}"
+                res_alt = self.session.post(url, data=payload_alt, headers=headers, timeout=12)
+                if res_alt.status_code == 200:
+                    if '"error":' not in res_alt.text and ('"payload":' in res_alt.text or '"actions":' in res_alt.text or '"thread_fbid":' in res_alt.text or 'message_id' in res_alt.text):
+                        return True, "Delivered via Web Mercury API (Thread Mode)"
         except Exception:
             pass
 
@@ -468,18 +479,22 @@ class FacebookSession:
 
         # --- Method 3: Facebook Graph API (If Token Provided) ---
         if self.access_token:
+            errors_g = []
             try:
                 # Route A: /me/messages
                 graph_url = f"https://graph.facebook.com/v19.0/me/messages?access_token={self.access_token}"
                 payload_graph = {
                     "recipient": {"id": str(thread_id)},
-                    "message": {"text": message_text},
-                    "messaging_type": "MESSAGE_TAG",
-                    "tag": "ACCOUNT_UPDATE"
+                    "message": {"text": message_text}
                 }
                 res_g = self.session.post(graph_url, json=payload_graph, timeout=12)
                 if res_g.status_code in [200, 201] and ("message_id" in res_g.text or "recipient_id" in res_g.text):
                     return True, "Delivered via Facebook Graph API"
+                else:
+                    try:
+                        errors_g.append(res_g.json().get("error", {}).get("message", res_g.text[:80]))
+                    except Exception:
+                        pass
                 
                 # Route B: /t_{thread_id} or /{thread_id}
                 res_direct = self.session.post(
@@ -487,12 +502,30 @@ class FacebookSession:
                     data={"message": message_text},
                     timeout=12
                 )
-                if res_direct.status_code in [200, 201] and "id" in res_direct.text:
+                if res_direct.status_code in [200, 201] and ("id" in res_direct.text or "success" in res_direct.text):
                     return True, "Delivered via Direct Graph API"
-            except Exception:
-                pass
+                else:
+                    try:
+                        errors_g.append(res_direct.json().get("error", {}).get("message", res_direct.text[:80]))
+                    except Exception:
+                        pass
 
-        return False, "Delivery failed: Target UID par message allow nahi hua ya thread open nahi ho saka."
+                # Route C: Direct Thread Messenger /v2.6/me/messages
+                res_v2 = self.session.post(
+                    f"https://graph.facebook.com/v2.6/me/messages?access_token={self.access_token}",
+                    json={"recipient": {"id": str(thread_id)}, "message": {"text": message_text}},
+                    timeout=12
+                )
+                if res_v2.status_code in [200, 201] and ("message_id" in res_v2.text or "recipient_id" in res_v2.text):
+                    return True, "Delivered via Graph v2.6 Gateway"
+
+            except Exception as e:
+                errors_g.append(str(e))
+
+            if errors_g and not self.cookie_header_str:
+                return False, f"Graph API Token Notice: {errors_g[0]}"
+
+        return False, "Delivery failed: Target UID par message allow nahi hua ya cookies / token permissions issue hai."
 
 
     def get_latest_thread_info(self, thread_id: str, is_group: bool = False) -> dict:
