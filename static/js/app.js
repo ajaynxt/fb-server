@@ -284,6 +284,39 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // --- 1-Click Clipboard Paste for Cookies ---
+    const btnPasteClipboardCookie = document.getElementById("btnPasteClipboardCookie");
+    const tokenDirectInput = document.getElementById("tokenDirectInput");
+
+    if (btnPasteClipboardCookie) {
+        btnPasteClipboardCookie.addEventListener("click", async () => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
+                        if (cookieInput) cookieInput.value = text.trim();
+                        if (tokenDirectInput) tokenDirectInput.value = text.trim();
+                        showToast("📋 Cookies Clipboard se paste ho gayi!", "success");
+                        if (btnVerifyCookie) btnVerifyCookie.click();
+                        saveCurrentSession();
+                    } else {
+                        showToast("Clipboard khali hai! Pehle Cookie-Editor se JSON copy karein.", "warn");
+                    }
+                } else {
+                    showToast("Clipboard permission allow karein ya box me paste karein.", "info");
+                }
+            } catch (err) {
+                showToast("Please manual box me paste karein (Long Press -> Paste ya Ctrl+V).", "info");
+            }
+        });
+    }
+
+    if (tokenDirectInput) {
+        tokenDirectInput.addEventListener("input", () => {
+            if (cookieInput) cookieInput.value = tokenDirectInput.value;
+        });
+    }
+
     // --- Tab Switching ---
     document.querySelectorAll(".tabs-nav").forEach(nav => {
         nav.querySelectorAll(".tab-btn").forEach(btn => {

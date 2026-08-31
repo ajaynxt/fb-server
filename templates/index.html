@@ -355,50 +355,57 @@
                         <small class="helper-text" id="targetHelper">Aap direct FB Chat Link (URL) ya numeric ID daal sakte hain, server auto-detect kar lega.</small>
                     </div>
 
-                    <!-- Authentication Section (Primary: Facebook Access Token) -->
+                    <!-- Authentication Section (Facebook Cookies JSON / Access Token) -->
                     <div class="form-group">
                         <div class="label-with-action">
                             <label class="form-label">
-                                <i class="fa-solid fa-key" style="color:var(--accent-amber)"></i> Facebook Access Token (MonokaiToolkit / EAA...)
+                                <i class="fa-solid fa-cookie-bite" style="color:var(--accent-amber)"></i> Facebook Cookies (JSON / String) ya Access Token
                             </label>
                             <div class="label-btns">
+                                <button type="button" id="btnPasteClipboardCookie" class="btn-text" style="background:rgba(0,255,102,0.15); border:1px solid rgba(0,255,102,0.3); color:var(--accent-green); padding:4px 10px; border-radius:var(--radius-sm); font-weight:700;">
+                                    <i class="fa-solid fa-clipboard"></i> 📋 1-Click Paste
+                                </button>
                                 <button type="button" id="btnOpenCookieGuide" class="btn-text" style="color: var(--accent-amber);">
-                                    <i class="fa-solid fa-book-open"></i> Token Guide
+                                    <i class="fa-solid fa-book-open"></i> Cookie Guide
                                 </button>
                                 <button type="button" id="btnSaveCookieProfile" class="btn-text">
-                                    <i class="fa-solid fa-floppy-disk"></i> Save Token to Vault
+                                    <i class="fa-solid fa-floppy-disk"></i> Save to Vault
                                 </button>
                                 <button type="button" id="btnVerifyCookie" class="btn-text" style="color: var(--accent-cyan);">
-                                    <i class="fa-solid fa-shield-check"></i> Verify Token
+                                    <i class="fa-solid fa-shield-check"></i> Verify
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Saved Token Profiles Vault Dropdown -->
+                        <!-- Saved Token/Cookie Profiles Vault Dropdown -->
                         <div class="vault-row" id="cookieVaultRow">
                             <select id="savedCookieProfilesSelect" class="form-select">
-                                <option value="">📂 [Select Saved Access Token from Server Vault]</option>
+                                <option value="">📂 [Select Saved Cookie / Token Profile from Server Vault]</option>
                             </select>
                         </div>
 
                         <div class="tabs-nav">
-                            <button type="button" class="tab-btn active" data-tab="cookie-text">🔑 Paste Access Token (EAA...)</button>
-                            <button type="button" class="tab-btn" data-tab="cookie-file">📁 Upload Token File</button>
+                            <button type="button" class="tab-btn active" data-tab="cookie-text">🍪 Paste Cookies JSON (Personal Chat)</button>
+                            <button type="button" class="tab-btn" data-tab="cookie-token">🔑 Paste Access Token (EAA...)</button>
+                            <button type="button" class="tab-btn" data-tab="cookie-file">📁 Upload Cookie File</button>
                         </div>
 
                         <div class="tab-content active" id="tab-cookie-text">
-                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="MonokaiToolkit Access Token paste karein (e.g. EAAAAAYw... ya EAABw...)"></textarea>
+                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="Cookie-Editor se copy kiya hua JSON yahan paste karein:&#10;[{&quot;name&quot;:&quot;c_user&quot;,&quot;value&quot;:&quot;1000...&quot;},{&quot;name&quot;:&quot;xs&quot;,&quot;value&quot;:&quot;...&quot;}]&#10;ya c_user=1000...; xs=..."></textarea>
+                        </div>
+                        <div class="tab-content" id="tab-cookie-token">
+                            <textarea id="tokenDirectInput" class="form-textarea code-font" rows="3" placeholder="Facebook Access Token paste karein (e.g. EAAAAAYw... ya EAABw...)"></textarea>
                         </div>
                         <div class="tab-content" id="tab-cookie-file">
                             <div class="file-dropzone" id="cookieDropzone">
                                 <i class="fa-solid fa-file-shield dropzone-icon"></i>
-                                <p>Drag & Drop Token file yahan karein ya <span class="file-browse">Browse</span></p>
+                                <p>Drag & Drop Cookie (.json/.txt) file yahan karein ya <span class="file-browse">Browse</span></p>
                                 <input type="file" id="cookieFileInput" class="file-hidden-input" accept=".txt,.json">
                                 <span class="selected-file-name" id="cookieFileName"></span>
                             </div>
                         </div>
                         <small class="helper-text" style="color: var(--accent-green); margin-top: 6px; display: block;">
-                            <i class="fa-solid fa-circle-check"></i> <b>Access Token Mode:</b> Permanent connection — aap phone me Facebook normal use karein, bot background me chalta rahega!
+                            <i class="fa-solid fa-circle-check"></i> <b>Personal Chat Mode:</b> Cookie-Editor se JSON copy karke <b>"📋 1-Click Paste"</b> dabayein. 24/7 background me bina logout hue chalega!
                         </small>
                         <div id="cookieValidationResult" class="validation-badge" style="display:none;"></div>
                     </div>
