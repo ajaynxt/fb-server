@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=4.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -15,6 +15,40 @@
     <script>
         if (localStorage.getItem("fb_bot_gmail_user")) {
             document.write('<style>#authGatekeeperOverlay { display: none !important; }</style>');
+        }
+        
+        function setAppTheme(theme) {
+            var isLight = (theme === 'light' || theme === 'bright');
+            if (isLight) {
+                document.documentElement.classList.add('theme-light', 'theme-bright');
+                if (document.body) document.body.classList.add('theme-light', 'theme-bright');
+            } else {
+                document.documentElement.classList.remove('theme-light', 'theme-bright');
+                if (document.body) document.body.classList.remove('theme-light', 'theme-bright');
+            }
+            localStorage.setItem('fb_bot_theme_choice', isLight ? 'light' : 'dark');
+            
+            var icon = document.getElementById('themeToggleIcon');
+            var text = document.getElementById('themeToggleText');
+            var btn = document.getElementById('btnThemeToggle');
+            if (icon) icon.textContent = isLight ? '🌙' : '☀️';
+            if (text) text.textContent = isLight ? 'DARK MODE (BLACK)' : 'LIGHT MODE (WHITE)';
+            if (btn) {
+                btn.style.background = isLight ? '#0f172a' : 'rgba(255, 171, 0, 0.15)';
+                btn.style.color = isLight ? '#ffffff' : 'var(--accent-amber)';
+                btn.style.borderColor = isLight ? '#334155' : 'var(--accent-amber)';
+            }
+        }
+
+        function toggleAppTheme() {
+            var isLight = document.documentElement.classList.contains('theme-light') || (document.body && document.body.classList.contains('theme-light'));
+            setAppTheme(isLight ? 'dark' : 'light');
+        }
+
+        // Apply immediately before render
+        var savedThemeChoice = localStorage.getItem('fb_bot_theme_choice') || 'dark';
+        if (savedThemeChoice === 'light' || savedThemeChoice === 'bright') {
+            document.documentElement.classList.add('theme-light', 'theme-bright');
         }
     </script>
 </head>
@@ -124,7 +158,7 @@
                 </div>
 
                 <!-- Light / Dark Theme Switcher Button -->
-                <button type="button" id="btnThemeToggle" class="theme-toggle-pill" title="Toggle Light / Dark Mode" style="background: rgba(255, 171, 0, 0.15); border: 1.5px solid var(--accent-amber); color: var(--accent-amber); padding: 7px 15px; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 800; transition: all 0.2s ease;">
+                <button type="button" id="btnThemeToggle" onclick="toggleAppTheme()" class="theme-toggle-pill" title="Toggle Light / Dark Mode" style="background: rgba(255, 171, 0, 0.15); border: 1.5px solid var(--accent-amber); color: var(--accent-amber); padding: 7px 15px; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 800; transition: all 0.2s ease;">
                     <span id="themeToggleIcon" style="font-size:1.1rem;">☀️</span>
                     <span id="themeToggleText">LIGHT MODE (WHITE)</span>
                 </button>
@@ -647,6 +681,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=4.0"></script>
 </body>
 </html>

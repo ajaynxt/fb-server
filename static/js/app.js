@@ -780,36 +780,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const themeToggleText = document.getElementById("themeToggleText");
 
     function applyTheme(themeName) {
-        if (themeName === "light" || themeName === "bright") {
-            document.body.classList.add("theme-light");
-            document.body.classList.add("theme-bright");
-            if (themeToggleIcon) themeToggleIcon.textContent = "🌙";
-            if (themeToggleText) themeToggleText.textContent = "DARK MODE (BLACK)";
-            if (btnThemeToggle) {
-                btnThemeToggle.style.background = "#0f172a";
-                btnThemeToggle.style.color = "#ffffff";
-                btnThemeToggle.style.borderColor = "#334155";
-            }
-        } else {
-            document.body.classList.remove("theme-light");
-            document.body.classList.remove("theme-bright");
-            if (themeToggleIcon) themeToggleIcon.textContent = "☀️";
-            if (themeToggleText) themeToggleText.textContent = "LIGHT MODE (WHITE)";
-            if (btnThemeToggle) {
-                btnThemeToggle.style.background = "rgba(255, 171, 0, 0.15)";
-                btnThemeToggle.style.color = "var(--accent-amber)";
-                btnThemeToggle.style.borderColor = "var(--accent-amber)";
-            }
+        if (typeof window.setAppTheme === "function") {
+            window.setAppTheme(themeName);
         }
-        localStorage.setItem("fb_bot_theme", themeName);
     }
 
     if (btnThemeToggle) {
         btnThemeToggle.addEventListener("click", () => {
-            const isCurrentlyLight = document.body.classList.contains("theme-light");
-            const newTheme = isCurrentlyLight ? "dark" : "light";
-            applyTheme(newTheme);
-            showToast(newTheme === "light" ? "☀️ White / Light Mode Active!" : "🌙 Pure Black / Dark Mode Active!", "info");
+            if (typeof window.toggleAppTheme === "function") {
+                window.toggleAppTheme();
+                const isLight = document.documentElement.classList.contains("theme-light");
+                showToast(isLight ? "☀️ White / Light Mode Active!" : "🌙 Pure Black / Dark Mode Active!", "info");
+            }
         });
     }
 
