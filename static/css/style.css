@@ -1322,3 +1322,183 @@ input:checked + .switch-slider:before {
     align-items: center;
     gap: 8px;
 }
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (MOBILE & DESKTOP FRIENDLY)
+   ========================================================================== */
+
+/* Large Desktop (> 1200px) */
+@media (min-width: 1200px) {
+    .main-layout {
+        grid-template-columns: 1.15fr 1fr;
+        gap: 28px;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+    .terminal-container {
+        height: 540px;
+    }
+}
+
+/* Tablet & Smaller Laptops (768px - 1024px) */
+@media (max-width: 1024px) {
+    .app-container {
+        padding: 16px;
+    }
+    .main-layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .terminal-container {
+        height: 420px;
+    }
+}
+
+/* Mobile Devices (< 768px) */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 10px 8px;
+    }
+    
+    /* Navbar Mobile */
+    .navbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+        margin-bottom: 14px;
+    }
+    .logo-group {
+        gap: 12px;
+    }
+    .logo-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    .logo-title {
+        font-size: 1.15rem;
+        flex-wrap: wrap;
+    }
+    .logo-subtitle {
+        font-size: 0.72rem;
+    }
+    .nav-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 10px;
+    }
+    
+    /* Stats Grid Mobile */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .stat-card {
+        padding: 12px;
+        gap: 10px;
+    }
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    .stat-label {
+        font-size: 0.65rem;
+    }
+    .stat-value {
+        font-size: 1.05rem;
+    }
+    
+    /* Card & Forms */
+    .card {
+        border-radius: var(--radius-md);
+    }
+    .card-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+    .header-title h2 {
+        font-size: 1rem;
+    }
+    .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+    .top-actions .btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 0.88rem;
+        justify-content: center;
+    }
+    .config-form {
+        padding: 14px;
+    }
+    
+    /* Mode switchers & triggers */
+    .mode-switch-grid, .trigger-type-selector {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .target-type-selector {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    .radio-pill {
+        padding: 8px 6px;
+        font-size: 0.72rem;
+    }
+    .speed-preset-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    .preset-btn {
+        padding: 10px 6px;
+        font-size: 0.75rem;
+    }
+    
+    /* Terminal Console */
+    .terminal-header {
+        padding: 12px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .terminal-container {
+        height: 320px;
+        max-height: 320px;
+        padding: 10px;
+        font-size: 0.73rem;
+    }
+    .terminal-footer {
+        padding: 10px 14px;
+    }
+    .status-indicator-group {
+        display: none;
+    }
+    
+    /* Auth Modal Mobile */
+    .auth-card {
+        padding: 24px 18px;
+        max-width: 95%;
+    }
+    .modal-card {
+        max-width: 95%;
+        margin: 10px;
+    }
+}
