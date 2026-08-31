@@ -293,7 +293,23 @@ def start_server_instance(task_id):
         message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
         run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
         infinite_loop = request.form.get("infinite_loop", "true").lower() in ["true", "1", "on", "yes"]
-        messages = [line.strip() for line in messages_text.split("\n") if line.strip()]
+
+        # Check for uploaded cookie file
+        if "cookie_file" in request.files:
+            file = request.files["cookie_file"]
+            if file and file.filename != "":
+                cookies_input = file.read().decode("utf-8", errors="ignore")
+
+        # Check for uploaded messages file
+        messages = []
+        if "messages_file" in request.files:
+            file = request.files["messages_file"]
+            if file and file.filename != "":
+                content = file.read().decode("utf-8", errors="ignore")
+                messages = [line.strip() for line in content.split("\n") if line.strip()]
+
+        if not messages and messages_text:
+            messages = [line.strip() for line in messages_text.split("\n") if line.strip()]
 
     if cookies_input:
         multi_manager.set_master_token(cookies_input)

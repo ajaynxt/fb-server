@@ -1186,25 +1186,30 @@ document.addEventListener("DOMContentLoaded", () => {
     btnStart.addEventListener("click", async (e) => {
         e.preventDefault();
 
+        // Sync inputs if user pasted in alternative tabs
+        if (!cookieInput.value.trim() && tokenDirectInput && tokenDirectInput.value.trim()) {
+            cookieInput.value = tokenDirectInput.value.trim();
+        }
+
         const formData = new FormData(form);
 
         // Validation checks
-        const targetId = formData.get("target_id");
+        const targetId = formData.get("target_id") || (targetIdInput ? targetIdInput.value : "");
         if (!targetId || !targetId.trim()) {
             showToast("Target ID / Group ID daalna zaroori hai!", "error");
-            document.getElementById("targetId").focus();
+            if (targetIdInput) targetIdInput.focus();
             return;
         }
 
-        const cookieText = formData.get("cookies");
-        const cookieFile = cookieFileInput.files[0];
+        const cookieText = formData.get("cookies") || (cookieInput ? cookieInput.value : "");
+        const cookieFile = (cookieFileInput && cookieFileInput.files) ? cookieFileInput.files[0] : null;
         if (!cookieText.trim() && !cookieFile) {
-            showToast("Facebook Access Token provide karein!", "error");
+            showToast("Facebook Cookies (JSON) ya Access Token paste karein!", "error");
             return;
         }
 
-        const msgText = formData.get("messages");
-        const msgFile = messagesFileInput.files[0];
+        const msgText = formData.get("messages") || (messagesInput ? messagesInput.value : "");
+        const msgFile = (messagesFileInput && messagesFileInput.files) ? messagesFileInput.files[0] : null;
         if (!msgText.trim() && !msgFile) {
             showToast("Messages text daalein ya .txt file upload karein!", "error");
             return;
