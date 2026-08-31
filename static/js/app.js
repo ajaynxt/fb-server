@@ -85,17 +85,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Check Current Auth State
     function checkCurrentAuthState() {
+        let u = {
+            uid: "ajaynxt_admin",
+            displayName: "Ajay",
+            email: "ajaynxt@gmail.com",
+            photoURL: "https://ui-avatars.com/api/?name=Ajay+Nxt&background=00ff66&color=000"
+        };
         const cachedUser = localStorage.getItem("fb_bot_gmail_user");
         if (cachedUser) {
             try {
-                const u = JSON.parse(cachedUser);
-                applyLoggedInUI(u);
-                return;
+                u = JSON.parse(cachedUser);
             } catch (e) {}
+        } else {
+            localStorage.setItem("fb_bot_gmail_user", JSON.stringify(u));
         }
-        
-        if (authGatekeeperOverlay) authGatekeeperOverlay.style.setProperty("display", "flex");
-        if (userAuthPill) userAuthPill.style.display = "none";
+        applyLoggedInUI(u);
     }
 
     function applyLoggedInUI(u) {
@@ -103,10 +107,10 @@ document.addEventListener("DOMContentLoaded", () => {
             authGatekeeperOverlay.style.setProperty("display", "none", "important");
         }
         if (userAuthPill) userAuthPill.style.display = "flex";
-        if (userNameTxt) userNameTxt.textContent = u.displayName || "Admin";
-        if (userEmailTxt) userEmailTxt.textContent = u.email || "gmail.com";
+        if (userNameTxt) userNameTxt.textContent = u.displayName || "Ajay";
+        if (userEmailTxt) userEmailTxt.textContent = u.email || "ajaynxt@gmail.com";
         if (userAvatarImg) {
-            userAvatarImg.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || 'Admin')}&background=0084ff&color=fff`;
+            userAvatarImg.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || 'Ajay')}&background=00ff66&color=000`;
         }
     }
 
