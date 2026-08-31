@@ -8,11 +8,13 @@ import time
 import json
 from io import BytesIO
 import requests
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from fb_engine import bot_runner, multi_manager, parse_cookies, FacebookSession
 import data_manager
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload size
 SERVER_START_TIME = time.time()
 
