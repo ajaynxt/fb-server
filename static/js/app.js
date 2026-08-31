@@ -108,49 +108,48 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Direct Gmail Form Login Handler
+    const gmailLoginForm = document.getElementById("gmailLoginForm");
+    const gmailInput = document.getElementById("gmailInput");
+    const btnDirectGmailLogin = document.getElementById("btnDirectGmailLogin");
+
+    function handleDirectGmailLogin(email) {
+        if (!email || !email.trim()) {
+            showToast("Gmail address daalna zaroori hai!", "error");
+            return;
+        }
+        email = email.trim().toLowerCase();
+        const namePart = email.split("@")[0];
+        const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        const userData = {
+            uid: "gmail_" + btoa(email).replace(/=/g, ""),
+            displayName: cleanName,
+            email: email,
+            photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=0084ff&color=fff`
+        };
+        localStorage.setItem("fb_bot_gmail_user", JSON.stringify(userData));
+        applyLoggedInUI(userData);
+        showToast(`Welcome ${cleanName}! (Logged in as ${email})`, "success");
+    }
+
+    if (gmailLoginForm) {
+        gmailLoginForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            handleDirectGmailLogin(gmailInput ? gmailInput.value : "ajaynxt@gmail.com");
+        });
+    }
+    if (btnDirectGmailLogin) {
+        btnDirectGmailLogin.addEventListener("click", (e) => {
+            e.preventDefault();
+            handleDirectGmailLogin(gmailInput ? gmailInput.value : "ajaynxt@gmail.com");
+        });
+    }
+
     // Google Sign-In Button Handler
     if (btnGoogleSignIn) {
         btnGoogleSignIn.addEventListener("click", async () => {
-            btnGoogleSignIn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Connecting Google...`;
-            
-            // Try Firebase Popup first
-            if (isFirebaseReady && auth) {
-                try {
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    const result = await auth.signInWithPopup(provider);
-                    const user = result.user;
-                    const userData = {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        photoURL: user.photoURL
-                    };
-                    localStorage.setItem("fb_bot_gmail_user", JSON.stringify(userData));
-                    applyLoggedInUI(userData);
-                    showToast(`Logged in as ${userData.displayName}`, "success");
-                    return;
-                } catch (err) {
-                    console.log("Firebase popup fallback:", err.message);
-                }
-            }
-
-            // Direct Gmail Fast Auth
-            const inputEmail = prompt("Apna Gmail ID daalein (e.g. yourname@gmail.com):", "admin@gmail.com");
-            if (inputEmail) {
-                const namePart = inputEmail.split("@")[0];
-                const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-                const userData = {
-                    uid: "gmail_" + btoa(inputEmail).replace(/=/g, ""),
-                    displayName: cleanName,
-                    email: inputEmail,
-                    photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=0084ff&color=fff`
-                };
-                localStorage.setItem("fb_bot_gmail_user", JSON.stringify(userData));
-                applyLoggedInUI(userData);
-                showToast(`Welcome ${cleanName} (${inputEmail})!`, "success");
-            } else {
-                btnGoogleSignIn.innerHTML = `<span>Continue with Google (Gmail)</span>`;
-            }
+            const inputVal = gmailInput && gmailInput.value.trim() ? gmailInput.value.trim() : "ajaynxt@gmail.com";
+            handleDirectGmailLogin(inputVal);
         });
     }
 
