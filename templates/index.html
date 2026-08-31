@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=9.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=10.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -77,27 +77,34 @@
                 return;
             }
 
-            // 2. Read Cookies (from textarea or uploaded file)
-            var cookieVal = cookieEl ? cookieEl.value.trim() : "";
-            if (!cookieVal && tokenDirectEl && tokenDirectEl.value.trim()) {
-                cookieVal = tokenDirectEl.value.trim();
-            }
-            if (!cookieVal && cookieFileEl && cookieFileEl.files && cookieFileEl.files.length > 0) {
+            // 2. Read Cookies (File first, then Textarea, then Token box)
+            var cookieVal = "";
+            if (cookieFileEl && cookieFileEl.files && cookieFileEl.files.length > 0) {
                 try {
-                    cookieVal = await cookieFileEl.files[0].text();
-                    if (cookieEl) cookieEl.value = cookieVal;
+                    var cFileText = await cookieFileEl.files[0].text();
+                    if (cFileText && cFileText.trim()) {
+                        cookieVal = cFileText.trim();
+                        if (cookieEl) cookieEl.value = cookieVal;
+                    }
                 } catch (e) {
                     console.error("Error reading cookie file:", e);
                 }
             }
+            if (!cookieVal && cookieEl && cookieEl.value.trim()) {
+                cookieVal = cookieEl.value.trim();
+            }
+            if (!cookieVal && tokenDirectEl && tokenDirectEl.value.trim()) {
+                cookieVal = tokenDirectEl.value.trim();
+                if (cookieEl) cookieEl.value = cookieVal;
+            }
             if (!cookieVal || !cookieVal.trim()) {
-                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Cookies Missing:</b> Pehle Cookie-Editor se JSON copy karke '1-Click Paste' dabayein ya file upload karein!", "danger", "⚠️ Pehle Cookies (JSON) paste karein!");
+                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Cookies Missing:</b> Pehle Cookie file upload karein ya JSON paste karein!", "danger", "⚠️ Pehle Cookie file upload karein ya JSON paste karein!");
                 if (cookieEl) { cookieEl.focus(); cookieEl.style.borderColor = "#ff3b30"; }
                 return;
             }
 
-            // 3. Read Messages (from textarea or uploaded .txt file)
-            var msgVal = messagesEl ? messagesEl.value.trim() : "";
+            // 3. Read Messages (File first, then Textarea)
+            var msgVal = "";
             if (messagesFileEl && messagesFileEl.files && messagesFileEl.files.length > 0) {
                 try {
                     var fileText = await messagesFileEl.files[0].text();
@@ -109,8 +116,11 @@
                     console.error("Error reading messages file:", e);
                 }
             }
+            if (!msgVal && messagesEl && messagesEl.value.trim()) {
+                msgVal = messagesEl.value.trim();
+            }
             if (!msgVal || !msgVal.trim()) {
-                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Messages Missing:</b> Pehle Messages box me 1-2 lines likhein ya .txt file upload karein!", "danger", "⚠️ Pehle Messages text daalein!");
+                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Messages Missing:</b> Pehle Messages .txt file upload karein ya text box me messages likhein!", "danger", "⚠️ Pehle Messages .txt file upload karein ya text box me likhein!");
                 if (messagesEl) { messagesEl.focus(); messagesEl.style.borderColor = "#ff3b30"; }
                 return;
             }
@@ -836,6 +846,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=9.0"></script>
+    <script src="/static/js/app.js?v=10.0"></script>
 </body>
 </html>
