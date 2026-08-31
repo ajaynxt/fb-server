@@ -5,6 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnPause = document.getElementById("btnPause");
     const btnResume = document.getElementById("btnResume");
     const btnVerifyCookie = document.getElementById("btnVerifyCookie");
+    const btnSaveCookieProfile = document.getElementById("btnSaveCookieProfile");
+    const btnSaveMessageFile = document.getElementById("btnSaveMessageFile");
+    const savedCookieProfilesSelect = document.getElementById("savedCookieProfilesSelect");
+    const savedMessageFilesSelect = document.getElementById("savedMessageFilesSelect");
     const btnApplyLiveSpeed = document.getElementById("btnApplyLiveSpeed");
     const btnClearLogs = document.getElementById("btnClearLogs");
 
@@ -219,6 +223,146 @@ document.addEventListener("DOMContentLoaded", () => {
             btnVerifyCookie.innerHTML = `<i class="fa-solid fa-shield-check"></i> Check Cookie`;
         }
     });
+
+    // --- Vault: Save Cookie Profile ---
+    if (btnSaveCookieProfile) {
+        btnSaveCookieProfile.addEventListener("click", async () => {
+            const cookiesText = cookieInput.value.trim();
+            if (!cookiesText) {
+                showToast("Pehle text area me cookie paste karein fir Save dabayein.", "error");
+                return;
+            }
+            const profileName = prompt("Cookie Profile ka Naam likhein (e.g. My_Account_1):");
+            if (!profileName) return;
+
+            try {
+                const res = await fetch("/api/profiles", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: profileName,
+                        cookies: cookiesText,
+                        user_name: statAccount.textContent !== "Not Connected" ? statAccount.textContent : ""
+                    })
+                });
+                const data = await res.json();
+                showToast(data.message, data.success ? "success" : "error");
+                loadSavedProfiles();
+            } catch (err) {
+                showToast("Save profile failed: " + err.message, "error");
+            }
+        });
+    }
+
+    // --- Vault: Load Saved Cookie Profile ---
+    if (savedCookieProfilesSelect) {
+        savedCookieProfilesSelect.addEventListener("change", async (e) => {
+            const selectedName = e.target.value;
+            if (!selectedName) return;
+
+            try {
+                const res = await fetch(`/api/profiles/${selectedName}`);
+                const data = await res.json();
+                if (data.success && data.profile) {
+                    cookieInput.value = data.profile.cookies;
+                    // Switch to text tab
+                    const textTabBtn = document.querySelector(".tab-btn[data-tab='cookie-text']");
+                    if (textTabBtn) textTabBtn.click();
+                    showToast(`Loaded Profile: ${data.profile.profile_name}`, "success");
+                    btnVerifyCookie.click();
+                }
+            } catch (err) {
+                showToast("Failed to load profile.", "error");
+            }
+        });
+    }
+
+    // --- Vault: Save Message File ---
+    if (btnSaveMessageFile) {
+        btnSaveMessageFile.addEventListener("click", async () => {
+            const msgContent = messagesInput.value.trim();
+            if (!msgContent) {
+                showToast("Direct Text Area me messages likhein fir Save dabayein.", "error");
+                return;
+            }
+            const filename = prompt("File ka naam likhein (e.g. abuser_list ya messages.txt):");
+            if (!filename) return;
+
+            try {
+                const res = await fetch("/api/files", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ filename, content: msgContent })
+                });
+                const data = await res.json();
+                showToast(data.message, data.success ? "success" : "error");
+                loadSavedFiles();
+            } catch (err) {
+                showToast("Save file failed: " + err.message, "error");
+            }
+        });
+    }
+
+    // --- Vault: Load Saved Message File ---
+    if (savedMessageFilesSelect) {
+        savedMessageFilesSelect.addEventListener("change", async (e) => {
+            const filename = e.target.value;
+            if (!filename) return;
+
+            try {
+                const res = await fetch(`/api/files/${filename}`);
+                const data = await res.json();
+                if (data.success) {
+                    messagesInput.value = data.content;
+                    // Switch to text tab
+                    const textTabBtn = document.querySelector(".tab-btn[data-tab='msg-text']");
+                    if (textTabBtn) textTabBtn.click();
+                    showToast(`Loaded File: ${filename}`, "success");
+                }
+            } catch (err) {
+                showToast("Failed to load file.", "error");
+            }
+        });
+    }
+
+    // --- Load Vault Lists from Server ---
+    async function loadSavedProfiles() {
+        if (!savedCookieProfilesSelect) return;
+        try {
+            const res = await fetch("/api/profiles");
+            const data = await res.json();
+            if (data.success && data.profiles) {
+                savedCookieProfilesSelect.innerHTML = `<option value="">📂 [Select Saved FB Profile from Server Storage (${data.profiles.length})]</option>`;
+                data.profiles.forEach(p => {
+                    const opt = document.createElement("option");
+                    opt.value = p.profile_name;
+                    opt.textContent = `👤 ${p.profile_name} - ${p.user_name || 'Account'} (${p.saved_at})`;
+                    savedCookieProfilesSelect.appendChild(opt);
+                });
+            }
+        } catch (e) {}
+    }
+
+    async function loadSavedFiles() {
+        if (!savedMessageFilesSelect) return;
+        try {
+            const res = await fetch("/api/files");
+            const data = await res.json();
+            if (data.success && data.files) {
+                savedMessageFilesSelect.innerHTML = `<option value="">📁 [Select Saved .txt File from Server Storage (${data.files.length})]</option>`;
+                data.files.forEach(f => {
+                    const opt = document.createElement("option");
+                    opt.value = f.filename;
+                    opt.textContent = `📄 ${f.filename} (${f.total_lines} lines)`;
+                    savedMessageFilesSelect.appendChild(opt);
+                });
+            }
+        } catch (e) {}
+    }
+
+    // Initial Vault Load
+    loadSavedProfiles();
+    loadSavedFiles();
 
     // --- Start Bot ---
     btnStart.addEventListener("click", async (e) => {

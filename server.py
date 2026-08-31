@@ -7,8 +7,8 @@ import os
 import time
 import json
 from flask import Flask, render_template, request, jsonify, Response, send_file
-from io import BytesIO
 from fb_engine import bot_runner, parse_cookies, FacebookSession
+import data_manager
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload size
@@ -214,6 +214,93 @@ def download_logs():
         download_name=f"fb_bot_logs_{int(time.time())}.txt",
         mimetype="text/plain"
     )
+
+
+# ==============================================================================
+# SECURE BACKEND STORAGE APIs (Cookie Profiles, Message Files, Config)
+# ==============================================================================
+
+@app.route("/api/profiles", methods=["GET", "POST"])
+def handle_cookie_profiles():
+    """Lists saved cookie profiles (GET) or saves a new one (POST)."""
+    if request.method == "GET":
+        return jsonify({"success": True, "profiles": data_manager.list_cookie_profiles()})
+
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip()
+    cookies = data.get("cookies", "").strip()
+    user_name = data.get("user_name", "")
+    user_id = data.get("user_id", "")
+
+    if not cookies:
+        return jsonify({"success": False, "message": "Cookies khali hain."}), 400
+
+    success = data_manager.save_cookie_profile(name, cookies, user_name, user_id)
+    return jsonify({
+        "success": success,
+        "message": "Cookie profile server storage me successfully save ho gaya!" if success else "Save failed."
+    })
+
+
+@app.route("/api/profiles/<name>", methods=["GET", "DELETE"])
+def handle_single_profile(name):
+    """Retrieves (GET) or deletes (DELETE) a saved cookie profile."""
+    if request.method == "DELETE":
+        success = data_manager.delete_cookie_profile(name)
+        return jsonify({"success": success, "message": "Profile deleted."})
+
+    profile = data_manager.get_cookie_profile(name)
+    if profile:
+        return jsonify({"success": True, "profile": profile})
+    return jsonify({"success": False, "message": "Profile not found."}), 404
+
+
+@app.route("/api/files", methods=["GET", "POST"])
+def handle_message_files():
+    """Lists saved message files (GET) or saves a new text file (POST)."""
+    if request.method == "GET":
+        return jsonify({"success": True, "files": data_manager.list_message_files()})
+
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        if uploaded_file and uploaded_file.filename != "":
+            content = uploaded_file.read().decode("utf-8", errors="ignore")
+            success = data_manager.save_message_file(uploaded_file.filename, content)
+            return jsonify({"success": success, "message": f"File '{uploaded_file.filename}' save ho gayi!"})
+
+    data = request.get_json(silent=True) or {}
+    filename = data.get("filename", "").strip()
+    content = data.get("content", "").strip()
+
+    if not filename or not content:
+        return jsonify({"success": False, "message": "Filename aur content dono zaroori hain."}), 400
+
+    success = data_manager.save_message_file(filename, content)
+    return jsonify({"success": success, "message": f"Message file '{filename}' save ho gayi!"})
+
+
+@app.route("/api/files/<filename>", methods=["GET", "DELETE"])
+def handle_single_file(filename):
+    """Retrieves (GET) content or deletes (DELETE) a message file."""
+    if request.method == "DELETE":
+        success = data_manager.delete_message_file(filename)
+        return jsonify({"success": success, "message": "File deleted."})
+
+    content = data_manager.get_message_file_content(filename)
+    if content:
+        return jsonify({"success": True, "filename": filename, "content": content})
+    return jsonify({"success": False, "message": "File not found."}), 404
+
+
+@app.route("/api/config", methods=["GET", "POST"])
+def handle_config():
+    """Retrieves or saves default form preferences on server."""
+    if request.method == "GET":
+        return jsonify({"success": True, "config": data_manager.get_config()})
+
+    data = request.get_json(silent=True) or {}
+    success = data_manager.save_config(data)
+    return jsonify({"success": success})
 
 
 if __name__ == "__main__":

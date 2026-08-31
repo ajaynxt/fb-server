@@ -76,5 +76,45 @@ class TestFBServer(unittest.TestCase):
         self.assertIn("task_mode", status)
         self.assertIn("target_type", status)
 
+    def test_cookie_profiles_storage(self):
+        # Save profile
+        res = self.app.post("/api/profiles", json={
+            "name": "test_account",
+            "cookies": "c_user=123; xs=abc;",
+            "user_name": "Test User",
+            "user_id": "123"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.get_json().get("success"))
+
+        # List profiles
+        res_list = self.app.get("/api/profiles")
+        self.assertEqual(res_list.status_code, 200)
+        profiles = res_list.get_json().get("profiles", [])
+        self.assertTrue(any(p["profile_name"] == "test_account" for p in profiles))
+
+        # Delete profile
+        res_del = self.app.delete("/api/profiles/test_account")
+        self.assertEqual(res_del.status_code, 200)
+
+    def test_message_files_storage(self):
+        # Save file
+        res = self.app.post("/api/files", json={
+            "filename": "test_msgs.txt",
+            "content": "Line 1\nLine 2\nLine 3"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.get_json().get("success"))
+
+        # List files
+        res_list = self.app.get("/api/files")
+        self.assertEqual(res_list.status_code, 200)
+        files = res_list.get_json().get("files", [])
+        self.assertTrue(any(f["filename"] == "test_msgs.txt" for f in files))
+
+        # Delete file
+        res_del = self.app.delete("/api/files/test_msgs.txt")
+        self.assertEqual(res_del.status_code, 200)
+
 if __name__ == "__main__":
     unittest.main()

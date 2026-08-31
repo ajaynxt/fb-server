@@ -27,3 +27,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Secure Server Storage (Private Sessions & Files)
+data/
+storage/

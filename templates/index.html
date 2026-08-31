@@ -166,9 +166,21 @@
                             <label class="form-label">
                                 <i class="fa-solid fa-cookie-bite"></i> Facebook Cookies (AppState JSON ya Cookie String)
                             </label>
-                            <button type="button" id="btnVerifyCookie" class="btn-text">
-                                <i class="fa-solid fa-shield-check"></i> Check Cookie
-                            </button>
+                            <div class="label-btns">
+                                <button type="button" id="btnSaveCookieProfile" class="btn-text">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save to Server
+                                </button>
+                                <button type="button" id="btnVerifyCookie" class="btn-text">
+                                    <i class="fa-solid fa-shield-check"></i> Check Cookie
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Saved Cookie Profiles Vault Dropdown -->
+                        <div class="vault-row" id="cookieVaultRow">
+                            <select id="savedCookieProfilesSelect" class="form-select">
+                                <option value="">📂 [Select Saved FB Profile from Server Storage]</option>
+                            </select>
                         </div>
 
                         <div class="tabs-nav">
@@ -191,9 +203,21 @@
 
                     <!-- Messages Section -->
                     <div class="form-group">
-                        <label class="form-label">
-                            <i class="fa-solid fa-message-lines"></i> Message Text File (.txt) ya Direct Messages
-                        </label>
+                        <div class="label-with-action">
+                            <label class="form-label">
+                                <i class="fa-solid fa-message-lines"></i> Message Text File (.txt) ya Direct Messages
+                            </label>
+                            <button type="button" id="btnSaveMessageFile" class="btn-text">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Save File to Server
+                            </button>
+                        </div>
+
+                        <!-- Saved Message Files Vault Dropdown -->
+                        <div class="vault-row" id="fileVaultRow">
+                            <select id="savedMessageFilesSelect" class="form-select">
+                                <option value="">📁 [Select Saved .txt File from Server Storage]</option>
+                            </select>
+                        </div>
                         
                         <div class="tabs-nav">
                             <button type="button" class="tab-btn active" data-tab="msg-file">Upload .txt File</button>

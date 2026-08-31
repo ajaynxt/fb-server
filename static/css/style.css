@@ -483,6 +483,35 @@ body {
     box-shadow: 0 0 12px rgba(0, 132, 255, 0.2);
 }
 
+.label-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vault-row {
+    margin-bottom: 6px;
+}
+
+.form-select {
+    width: 100%;
+    background: #080c14;
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    color: var(--accent-cyan);
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.form-select:hover, .form-select:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
 .form-input, .form-textarea {
     width: 100%;
     background: var(--bg-input);
