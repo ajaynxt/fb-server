@@ -1,35 +1,36 @@
 :root {
     --bg-primary: #07090e;
     --bg-secondary: #0e131f;
-    --bg-card: #131a2b;
+    --bg-card: #121828;
     --bg-card-hover: #182238;
-    --bg-input: #0a0e17;
+    --bg-input: #090d16;
     
-    --border-color: #1f2c47;
-    --border-glow: #0084ff40;
+    --border-color: #1c273e;
+    --border-glow: rgba(0, 132, 255, 0.35);
     
-    --text-primary: #f0f4fc;
-    --text-secondary: #8b9bb4;
-    --text-muted: #57657d;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
 
     --accent-blue: #0084ff;
     --accent-cyan: #00f2fe;
-    --accent-purple: #9d4edd;
-    --accent-green: #00e676;
-    --accent-red: #ff1744;
-    --accent-amber: #ffab00;
-    --accent-magenta: #ff007f;
+    --accent-purple: #a855f7;
+    --accent-green: #10b981;
+    --accent-red: #f43f5e;
+    --accent-amber: #f59e0b;
+    --accent-magenta: #ec4899;
     
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
     --radius-full: 9999px;
     
-    --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 20px rgba(0, 132, 255, 0.25);
+    --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.65);
+    --shadow-glow: 0 0 25px rgba(0, 242, 254, 0.2);
     
-    --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: 'Fira Code', monospace;
+    --font-main: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 * {
