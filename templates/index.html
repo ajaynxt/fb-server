@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=10.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=11.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -471,17 +471,17 @@
                         </label>
                         <div class="trigger-type-selector">
                             <label class="radio-card">
-                                <input type="radio" name="trigger_mode" value="reply_seen" checked>
+                                <input type="radio" name="trigger_mode" value="loop" checked>
                                 <span>
-                                    <div class="trig-top"><i class="fa-solid fa-reply-all"></i> <strong>Reply-to-Reply & Seen</strong></div>
-                                    <small>Koi message aate hi ya message Seen hote hi turant Auto-Seen & Typing karke reply karega</small>
+                                    <div class="trig-top"><i class="fa-solid fa-stopwatch"></i> <strong>Continuous Timer Loop (Default)</strong></div>
+                                    <small>Fixed delay interval par lagatar file se ek ke baad ek non-stop messages bhejta rahega</small>
                                 </span>
                             </label>
                             <label class="radio-card">
-                                <input type="radio" name="trigger_mode" value="loop">
+                                <input type="radio" name="trigger_mode" value="reply_seen">
                                 <span>
-                                    <div class="trig-top"><i class="fa-solid fa-stopwatch"></i> <strong>Continuous Timer Loop</strong></div>
-                                    <small>Fixed delay interval par lagatar file se ek ke baad ek messages bhejta rahega</small>
+                                    <div class="trig-top"><i class="fa-solid fa-reply-all"></i> <strong>Reply-to-Reply & Seen</strong></div>
+                                    <small>Koi message aate hi ya message Seen hote hi turant Auto-Seen & Typing karke reply karega</small>
                                 </span>
                             </label>
                         </div>
@@ -846,6 +846,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=10.0"></script>
+    <script src="/static/js/app.js?v=11.0"></script>
 </body>
 </html>

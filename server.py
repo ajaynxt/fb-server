@@ -356,21 +356,47 @@ def stream_logs():
     """
     Server-Sent Events (SSE) live streaming logs to client web interface.
     """
+    task_id = request.args.get("task_id", "default")
+    srv = multi_manager.get_server(task_id)
+
     def event_stream():
         # First send existing history
-        for entry in bot_runner.logs_history[-30:]:
+        for entry in srv.logs_history[-30:]:
             yield f"data: {json.dumps(entry)}\n\n"
 
         # Stream new events as they arrive
         while True:
             try:
-                log_entry = bot_runner.log_queue.get(timeout=25)
+                log_entry = srv.log_queue.get(timeout=20)
                 yield f"data: {json.dumps(log_entry)}\n\n"
             except Exception:
                 # Send heartbeat comment to keep connection alive
                 yield ": heartbeat\n\n"
 
-    return Response(event_stream(), mimetype="text/event-stream")
+    response = Response(event_stream(), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache, no-transform"
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
+
+@app.route("/api/logs/recent", methods=["GET"])
+def get_recent_logs():
+    """Returns recent logs history for real-time polling fallback."""
+    task_id = request.args.get("task_id", "default")
+    srv = multi_manager.get_server(task_id)
+    return jsonify({
+        "success": True,
+        "logs": srv.logs_history[-60:],
+        "is_running": srv.is_running,
+        "status": srv.status,
+        "total_sent": srv.total_sent,
+        "loop_count": srv.loop_count,
+        "current_line": srv.current_line_idx,
+        "total_lines": srv.total_lines,
+        "user_name": srv.user_name,
+        "uptime": srv.get_uptime()
+    })
 
 
 @app.route("/api/clear_logs", methods=["POST"])

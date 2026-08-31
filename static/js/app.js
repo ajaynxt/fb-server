@@ -1403,18 +1403,64 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     window.updateUIState = updateUIState;
 
-    // --- Status Polling Loop ---
+    // Track rendered log entries to avoid duplicates between SSE and polling
+    const seenLogSignatures = new Set();
+
+    function appendLogRow(log) {
+        if (!log || !log.message) return;
+        const sig = `${log.timestamp}_${log.message}`;
+        if (seenLogSignatures.has(sig)) return;
+        seenLogSignatures.add(sig);
+
+        if (seenLogSignatures.size > 800) {
+            const arr = Array.from(seenLogSignatures);
+            seenLogSignatures.clear();
+            arr.slice(-400).forEach(s => seenLogSignatures.add(s));
+        }
+
+        const row = document.createElement("div");
+        row.className = `log-row ${log.level ? log.level.toLowerCase() : 'info'}`;
+
+        let tagClass = "tag-info";
+        let levelIcon = "⚡";
+        if (log.level === "SUCCESS") { tagClass = "tag-success"; levelIcon = "✅"; }
+        else if (log.level === "TYPING") { tagClass = "tag-typing"; levelIcon = "⌨️"; }
+        else if (log.level === "SEEN") { tagClass = "tag-seen"; levelIcon = "👁️"; }
+        else if (log.level === "COMMENT") { tagClass = "tag-comment"; levelIcon = "💬"; }
+        else if (log.level === "WARN") { tagClass = "tag-warn"; levelIcon = "⚠️"; }
+        else if (log.level === "ERROR") { tagClass = "tag-error"; levelIcon = "❌"; }
+
+        row.innerHTML = `
+            <span class="log-time" style="color:var(--accent-cyan); font-weight:700; font-size:0.75rem;">[${log.timestamp || ''}]</span>
+            <span class="log-tag ${tagClass}">${levelIcon} ${log.level || 'INFO'}</span>
+            <span class="log-text">${escapeHtml(log.message || '')}</span>
+        `;
+
+        if (terminalLogs) {
+            terminalLogs.appendChild(row);
+            while (terminalLogs.children.length > 400) {
+                terminalLogs.removeChild(terminalLogs.firstChild);
+            }
+        }
+
+        if (autoScrollCheck && autoScrollCheck.checked && terminalContainer) {
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+    }
+
+    // --- Status & Real-time Logs Polling Loop ---
     async function fetchStatus() {
         try {
-            const res = await fetch("/api/status");
+            const taskId = (window.currentSelectedTaskId || "default");
+            const res = await fetch(`/api/logs/recent?task_id=${taskId}`);
             const data = await res.json();
 
-            uptimeDisplay.textContent = data.uptime || "00:00:00";
-            statSent.textContent = data.total_sent || 0;
-            statLoop.textContent = `Round #${data.loop_count || 0}`;
-            statProgress.textContent = `${data.current_line || 0} / ${data.total_lines || 0}`;
+            if (uptimeDisplay) uptimeDisplay.textContent = data.uptime || "00:00:00";
+            if (statSent) statSent.textContent = data.total_sent || 0;
+            if (statLoop) statLoop.textContent = `Round #${data.loop_count || 0}`;
+            if (statProgress) statProgress.textContent = `${data.current_line || 0} / ${data.total_lines || 0}`;
 
-            if (data.user_name) {
+            if (data.user_name && statAccount) {
                 statAccount.textContent = data.user_name;
             }
 
@@ -1423,18 +1469,24 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (isRunning) {
                 updateUIState(false);
             }
+
+            if (data.logs && Array.isArray(data.logs)) {
+                data.logs.forEach(log => appendLogRow(log));
+            }
         } catch (err) {
             // Ignore temporary poll error
         }
     }
 
-    setInterval(fetchStatus, 1500);
+    setInterval(fetchStatus, 1000);
+    fetchStatus();
 
     // --- Server-Sent Events (SSE) Live Log Streaming ---
     function initLogStream() {
         if (eventSource) eventSource.close();
 
-        eventSource = new EventSource("/api/logs");
+        const taskId = (window.currentSelectedTaskId || "default");
+        eventSource = new EventSource(`/api/logs?task_id=${taskId}`);
 
         eventSource.onmessage = (event) => {
             if (!event.data) return;
@@ -1447,41 +1499,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         eventSource.onerror = () => {
-            // Auto-reconnect after 3s
             eventSource.close();
             setTimeout(initLogStream, 3000);
         };
-    }
-
-    function appendLogRow(log) {
-        const row = document.createElement("div");
-        row.className = `log-row ${log.level.toLowerCase()}`;
-
-        let tagClass = "tag-info";
-        let levelIcon = "⚡";
-        if (log.level === "SUCCESS") { tagClass = "tag-success"; levelIcon = "✅"; }
-        else if (log.level === "TYPING") { tagClass = "tag-typing"; levelIcon = "⌨️"; }
-        else if (log.level === "SEEN") { tagClass = "tag-seen"; levelIcon = "👁️"; }
-        else if (log.level === "COMMENT") { tagClass = "tag-comment"; levelIcon = "💬"; }
-        else if (log.level === "WARN") { tagClass = "tag-warn"; levelIcon = "⚠️"; }
-        else if (log.level === "ERROR") { tagClass = "tag-error"; levelIcon = "❌"; }
-
-        row.innerHTML = `
-            <span class="log-time" style="color:var(--accent-cyan); font-weight:700; font-size:0.75rem;">[${log.timestamp}]</span>
-            <span class="log-tag ${tagClass}">${levelIcon} ${log.level}</span>
-            <span class="log-text">${escapeHtml(log.message)}</span>
-        `;
-
-        terminalLogs.appendChild(row);
-
-        // Keep maximum 400 DOM nodes in terminal to keep browser fast
-        while (terminalLogs.children.length > 400) {
-            terminalLogs.removeChild(terminalLogs.firstChild);
-        }
-
-        if (autoScrollCheck && autoScrollCheck.checked) {
-            terminalContainer.scrollTop = terminalContainer.scrollHeight;
-        }
     }
 
     function escapeHtml(text) {
