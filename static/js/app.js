@@ -1355,36 +1355,40 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- UI State Management ---
+    const btnStopBottom = document.getElementById("btnStopBottom");
+
     function updateUIState(running, status = "RUNNING") {
         isRunning = running;
 
         if (running) {
-            btnStart.disabled = true;
-            if (btnStartBottom) btnStartBottom.disabled = true;
-            btnStop.disabled = false;
-            btnPause.disabled = false;
-            btnResume.style.display = "none";
-            btnPause.style.display = "inline-flex";
+            if (btnStartBottom) {
+                btnStartBottom.disabled = true;
+                btnStartBottom.innerHTML = `<i class="fa-solid fa-check"></i> 🟢 BOT RUNNING (24/7)`;
+            }
+            if (btnStop) btnStop.disabled = false;
+            if (btnStopBottom) btnStopBottom.disabled = false;
+            if (btnPause) btnPause.disabled = false;
+            if (btnResume) btnResume.style.display = "none";
+            if (btnPause) btnPause.style.display = "inline-flex";
 
-            globalStatusPill.className = "status-pill running";
-            globalStatusText.textContent = status;
+            if (globalStatusPill) globalStatusPill.className = "status-pill running";
+            if (globalStatusText) globalStatusText.textContent = status;
         } else {
-            btnStart.disabled = false;
-            btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
             if (btnStartBottom) {
                 btnStartBottom.disabled = false;
                 btnStartBottom.innerHTML = `<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)`;
             }
-            btnStop.disabled = true;
-            btnPause.disabled = true;
-            btnResume.style.display = "none";
-            btnPause.style.display = "inline-flex";
-            btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
+            if (btnStop) btnStop.disabled = true;
+            if (btnStopBottom) btnStopBottom.disabled = true;
+            if (btnPause) btnPause.disabled = true;
+            if (btnResume) btnResume.style.display = "none";
+            if (btnPause) btnPause.style.display = "inline-flex";
 
-            globalStatusPill.className = "status-pill";
-            globalStatusText.textContent = "STOPPED";
+            if (globalStatusPill) globalStatusPill.className = "status-pill";
+            if (globalStatusText) globalStatusText.textContent = "STOPPED";
         }
     }
+    window.updateUIState = updateUIState;
 
     // --- Status Polling Loop ---
     async function fetchStatus() {

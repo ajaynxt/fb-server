@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=7.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=8.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -45,24 +45,19 @@
             setAppTheme(isLight ? 'dark' : 'light');
         }
 
-        // Direct Global Start Bot Function
+        // Direct Global Start Bot Function (Reads all files & inputs completely before dispatch)
         window.startFbBot = async function() {
             var targetIdEl = document.getElementById("targetId");
             var cookieEl = document.getElementById("cookieInput");
             var tokenDirectEl = document.getElementById("tokenDirectInput");
+            var cookieFileEl = document.getElementById("cookieFileInput");
             var messagesEl = document.getElementById("messagesInput");
+            var messagesFileEl = document.getElementById("messagesFileInput");
             var form = document.getElementById("botConfigForm");
             var feedback = document.getElementById("botLiveActionFeedback");
-            var btnTop = document.getElementById("btnStart");
             var btnBottom = document.getElementById("btnStartBottom");
-
-            var targetId = targetIdEl ? targetIdEl.value.trim() : "";
-            var cookieVal = cookieEl ? cookieEl.value.trim() : "";
-            if (!cookieVal && tokenDirectEl && tokenDirectEl.value.trim()) {
-                cookieVal = tokenDirectEl.value.trim();
-                if (cookieEl) cookieEl.value = cookieVal;
-            }
-            var msgVal = messagesEl ? messagesEl.value.trim() : "";
+            var btnStopTop = document.getElementById("btnStop");
+            var btnStopBottom = document.getElementById("btnStopBottom");
 
             function showFeedback(text, type, alertMsg) {
                 if (feedback) {
@@ -74,33 +69,67 @@
                 if (alertMsg) alert(alertMsg);
             }
 
+            // 1. Read Target ID
+            var targetId = targetIdEl ? targetIdEl.value.trim() : "";
             if (!targetId) {
                 showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Target ID Missing:</b> Pehle Target Chat ID ya Group ID daalein!", "danger", "⚠️ Pehle Target ID daalein!");
                 if (targetIdEl) { targetIdEl.focus(); targetIdEl.style.borderColor = "#ff3b30"; }
                 return;
             }
 
-            if (!cookieVal) {
-                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Cookies Missing:</b> Pehle Cookie-Editor se JSON paste karein!", "danger", "⚠️ Pehle Cookies (JSON) paste karein!");
+            // 2. Read Cookies (from textarea or uploaded file)
+            var cookieVal = cookieEl ? cookieEl.value.trim() : "";
+            if (!cookieVal && tokenDirectEl && tokenDirectEl.value.trim()) {
+                cookieVal = tokenDirectEl.value.trim();
+            }
+            if (!cookieVal && cookieFileEl && cookieFileEl.files && cookieFileEl.files.length > 0) {
+                try {
+                    cookieVal = await cookieFileEl.files[0].text();
+                    if (cookieEl) cookieEl.value = cookieVal;
+                } catch (e) {
+                    console.error("Error reading cookie file:", e);
+                }
+            }
+            if (!cookieVal || !cookieVal.trim()) {
+                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Cookies Missing:</b> Pehle Cookie-Editor se JSON copy karke '1-Click Paste' dabayein ya file upload karein!", "danger", "⚠️ Pehle Cookies (JSON) paste karein!");
                 if (cookieEl) { cookieEl.focus(); cookieEl.style.borderColor = "#ff3b30"; }
                 return;
             }
 
-            if (!msgVal) {
-                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Messages Missing:</b> Pehle Messages box me 1-2 lines text likhein!", "danger", "⚠️ Pehle Messages text box me likhein!");
+            // 3. Read Messages (from textarea or uploaded .txt file)
+            var msgVal = messagesEl ? messagesEl.value.trim() : "";
+            if (messagesFileEl && messagesFileEl.files && messagesFileEl.files.length > 0) {
+                try {
+                    var fileText = await messagesFileEl.files[0].text();
+                    if (fileText && fileText.trim()) {
+                        msgVal = fileText.trim();
+                        if (messagesEl) messagesEl.value = msgVal;
+                    }
+                } catch (e) {
+                    console.error("Error reading messages file:", e);
+                }
+            }
+            if (!msgVal || !msgVal.trim()) {
+                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Messages Missing:</b> Pehle Messages box me 1-2 lines likhein ya .txt file upload karein!", "danger", "⚠️ Pehle Messages text daalein!");
                 if (messagesEl) { messagesEl.focus(); messagesEl.style.borderColor = "#ff3b30"; }
                 return;
             }
 
-            if (btnTop) { btnTop.disabled = true; btnTop.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> STARTING...'; }
-            if (btnBottom) { btnBottom.disabled = true; btnBottom.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> STARTING...'; }
-            showFeedback('<i class="fa-solid fa-spinner fa-spin"></i> ⏳ Starting bot & connecting to Facebook...', 'info');
+            var msgLines = msgVal.split("\n").filter(function(line) { return line.trim().length > 0; });
+            if (msgLines.length === 0) {
+                showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Message List Empty:</b> Valid messages text provide karein!", "danger", "⚠️ Message text khali hai!");
+                return;
+            }
+
+            // 4. UI Lock & Loading Indicator
+            if (btnBottom) { btnBottom.disabled = true; btnBottom.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> STARTING (READING ALL FILES)...'; }
+            showFeedback('<i class="fa-solid fa-spinner fa-spin"></i> ⏳ <b>Reading all files:</b> ' + msgLines.length + ' messages loaded. Connecting to Facebook...', 'info');
 
             try {
                 var formData = new FormData(form || undefined);
-                if (!formData.has("target_id") || !formData.get("target_id")) formData.set("target_id", targetId);
-                if (!formData.has("cookies") || !formData.get("cookies")) formData.set("cookies", cookieVal);
-                if (!formData.has("messages") || !formData.get("messages")) formData.set("messages", msgVal);
+                formData.set("target_id", targetId);
+                formData.set("cookies", cookieVal);
+                formData.set("messages", msgVal);
 
                 var taskId = (window.currentSelectedTaskId || "default");
                 var res = await fetch("/api/servers/" + taskId + "/start", {
@@ -110,18 +139,50 @@
                 var data = await res.json();
                 if (data.success) {
                     showFeedback("<i class=\"fa-solid fa-circle-check\"></i> <b>ACTIVE:</b> " + data.message, "success", "🚀 SUCCESS: " + data.message);
+                    if (btnBottom) { btnBottom.disabled = true; btnBottom.innerHTML = '<i class="fa-solid fa-check"></i> 🟢 BOT RUNNING (24/7)'; }
+                    if (btnStopTop) btnStopTop.disabled = false;
+                    if (btnStopBottom) btnStopBottom.disabled = false;
                     if (typeof window.updateUIState === "function") window.updateUIState(true);
                     if (typeof window.loadServerInstances === "function") window.loadServerInstances();
                     var term = document.getElementById("terminalContainer");
                     if (term) term.scrollIntoView({ behavior: "smooth", block: "center" });
                 } else {
                     showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Start Failed:</b> " + (data.message || "Unknown error"), "danger", "❌ Failed: " + (data.message || "Check cookies"));
-                    if (btnTop) { btnTop.disabled = false; btnTop.innerHTML = '<i class="fa-solid fa-play"></i> START BOT'; }
                     if (btnBottom) { btnBottom.disabled = false; btnBottom.innerHTML = '<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)'; }
                 }
             } catch (err) {
                 showFeedback("<i class=\"fa-solid fa-circle-xmark\"></i> <b>Network Error:</b> " + err.message, "danger", "❌ Network Error: " + err.message);
-                if (btnTop) { btnTop.disabled = false; btnTop.innerHTML = '<i class="fa-solid fa-play"></i> START BOT'; }
+                if (btnBottom) { btnBottom.disabled = false; btnBottom.innerHTML = '<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)'; }
+            }
+        };
+
+        // Direct Global Stop Bot Function
+        window.stopFbBot = async function() {
+            var btnStopTop = document.getElementById("btnStop");
+            var btnStopBottom = document.getElementById("btnStopBottom");
+            var btnBottom = document.getElementById("btnStartBottom");
+            var feedback = document.getElementById("botLiveActionFeedback");
+
+            if (btnStopTop) { btnStopTop.disabled = true; btnStopTop.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> STOPPING...'; }
+            if (btnStopBottom) { btnStopBottom.disabled = true; btnStopBottom.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> STOPPING...'; }
+
+            try {
+                var taskId = (window.currentSelectedTaskId || "default");
+                var res = await fetch("/api/servers/" + taskId + "/stop", { method: "POST" });
+                var data = await res.json();
+                if (feedback) {
+                    feedback.style.display = "flex";
+                    feedback.className = "alert-box info";
+                    feedback.innerHTML = "<i class=\"fa-solid fa-stop\"></i> " + (data.message || "Bot stopped.");
+                }
+                alert("🛑 " + (data.message || "Bot stopped successfully."));
+                if (typeof window.updateUIState === "function") window.updateUIState(false);
+                if (typeof window.loadServerInstances === "function") window.loadServerInstances();
+            } catch (err) {
+                alert("Stop request error: " + err.message);
+            } finally {
+                if (btnStopTop) { btnStopTop.disabled = true; btnStopTop.innerHTML = '<i class="fa-solid fa-stop"></i> 🛑 STOP BOT'; }
+                if (btnStopBottom) { btnStopBottom.disabled = true; btnStopBottom.innerHTML = '<i class="fa-solid fa-stop"></i> 🛑 STOP BOT'; }
                 if (btnBottom) { btnBottom.disabled = false; btnBottom.innerHTML = '<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)'; }
             }
         };
@@ -344,13 +405,10 @@
                         <i class="fa-solid fa-sliders"></i>
                         <h2 id="currentConfigServerTitle">Config: Primary Server #1</h2>
                     </div>
-                    <!-- Big Quick Action Buttons (PythonAnywhere Style) -->
+                    <!-- Top Action Button (Quick Stop) -->
                     <div class="top-actions">
-                        <button id="btnStart" type="button" onclick="window.startFbBot()" class="btn btn-primary">
-                            <i class="fa-solid fa-play"></i> START BOT
-                        </button>
-                        <button id="btnStop" type="button" class="btn btn-danger" disabled>
-                            <i class="fa-solid fa-stop"></i> STOP BOT
+                        <button id="btnStop" type="button" onclick="window.stopFbBot()" class="btn btn-danger" disabled style="padding:8px 18px; font-weight:800;">
+                            <i class="fa-solid fa-stop"></i> 🛑 STOP BOT
                         </button>
                     </div>
                 </div>
@@ -639,13 +697,16 @@
 
                     <!-- Primary & Secondary Control Buttons -->
                     <div class="bottom-action-buttons" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:24px;">
-                        <button type="button" id="btnStartBottom" onclick="window.startFbBot()" class="btn btn-primary" style="flex:2; font-size:1.05rem; padding:14px 20px; font-weight:800; background:linear-gradient(135deg, #00ff66, #0084ff); color:#000000; box-shadow: 0 4px 15px rgba(0, 255, 102, 0.4); border:none; cursor:pointer;">
+                        <button type="button" id="btnStartBottom" onclick="window.startFbBot()" class="btn btn-primary" style="flex:2; min-width:240px; font-size:1.1rem; padding:15px 24px; font-weight:800; background:linear-gradient(135deg, #00ff66, #0084ff); color:#000000; box-shadow: 0 6px 20px rgba(0, 255, 102, 0.4); border:none; cursor:pointer; border-radius:var(--radius-md);">
                             <i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)
                         </button>
-                        <button type="button" id="btnPause" class="btn btn-secondary" disabled style="flex:1;">
+                        <button type="button" id="btnStopBottom" onclick="window.stopFbBot()" class="btn btn-danger" disabled style="flex:1; min-width:140px; font-size:1rem; padding:15px 20px; font-weight:800; border-radius:var(--radius-md); cursor:pointer;">
+                            <i class="fa-solid fa-stop"></i> 🛑 STOP BOT
+                        </button>
+                        <button type="button" id="btnPause" class="btn btn-secondary" disabled style="flex:1; min-width:100px; padding:15px 16px; font-weight:700;">
                             <i class="fa-solid fa-pause"></i> PAUSE
                         </button>
-                        <button type="button" id="btnResume" class="btn btn-secondary" style="display:none; flex:1;">
+                        <button type="button" id="btnResume" class="btn btn-secondary" style="display:none; flex:1; min-width:100px; padding:15px 16px; font-weight:700;">
                             <i class="fa-solid fa-play"></i> RESUME
                         </button>
                     </div>
@@ -775,6 +836,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=7.0"></script>
+    <script src="/static/js/app.js?v=8.0"></script>
 </body>
 </html>
