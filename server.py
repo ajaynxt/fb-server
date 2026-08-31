@@ -91,8 +91,9 @@ def start_bot():
         trigger_mode = request.form.get("trigger_mode", "loop")
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
-        typing_delay = int(request.form.get("typing_delay", 3))
-        message_delay = int(request.form.get("message_delay", 5))
+        typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
+        message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
+        run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
         infinite_loop = request.form.get("infinite_loop", "true").lower() in ["true", "1", "on", "yes"]
 
         # Check for uploaded cookie file
@@ -122,7 +123,8 @@ def start_bot():
         message_delay=message_delay,
         infinite_loop=infinite_loop,
         task_mode=task_mode,
-        trigger_mode=trigger_mode
+        trigger_mode=trigger_mode,
+        run_duration_mins=run_duration_mins
     )
 
     return jsonify({"success": success, "message": message}), (200 if success else 400)

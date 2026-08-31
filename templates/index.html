@@ -252,7 +252,7 @@
                     <div class="speed-control-box">
                         <div class="speed-header">
                             <label class="form-label">
-                                <i class="fa-solid fa-gauge-high"></i> Speed & Delay Controls
+                                <i class="fa-solid fa-gauge-high"></i> Speed & Duration Controls (Sliders + Manual Box)
                             </label>
                             <button type="button" id="btnApplyLiveSpeed" class="btn btn-sm btn-outline">
                                 <i class="fa-solid fa-bolt"></i> Live Speed Apply
@@ -261,7 +261,7 @@
 
                         <!-- Speed Presets -->
                         <div class="presets-row">
-                            <button type="button" class="preset-btn" data-type="ultra">⚡ Ultra Fast (1s/2s)</button>
+                            <button type="button" class="preset-btn" data-type="ultra">⚡ Ultra (1s/2s)</button>
                             <button type="button" class="preset-btn active" data-type="fast">🚀 Fast (2s/5s)</button>
                             <button type="button" class="preset-btn" data-type="normal">⚖️ Normal (3s/10s)</button>
                             <button type="button" class="preset-btn" data-type="safe">🛡️ Safe (5s/20s)</button>
@@ -270,20 +270,40 @@
                         <div class="sliders-grid">
                             <div class="slider-item">
                                 <div class="slider-label">
-                                    <span><i class="fa-solid fa-keyboard"></i> Auto-Typing Duration</span>
-                                    <span class="slider-val" id="typingVal">2s</span>
+                                    <span><i class="fa-solid fa-keyboard"></i> Auto-Typing Duration (s)</span>
+                                    <div class="manual-input-wrap">
+                                        <input type="number" id="typingDelayInput" step="0.5" min="0" max="60" value="2" class="manual-num-input">
+                                        <span class="unit-tag">sec</span>
+                                    </div>
                                 </div>
-                                <input type="range" id="typingDelaySlider" name="typing_delay" min="1" max="30" value="2" class="range-slider">
-                                <small>Message send se pehle FB par 'typing...' show hone ka time</small>
+                                <input type="range" id="typingDelaySlider" name="typing_delay" min="0" max="30" step="0.5" value="2" class="range-slider">
+                                <small>FB par 'typing...' indicator kitni der dikhe (0 = Direct send)</small>
                             </div>
 
                             <div class="slider-item">
                                 <div class="slider-label">
-                                    <span><i class="fa-solid fa-stopwatch"></i> Message Interval (Speed)</span>
-                                    <span class="slider-val" id="intervalVal">5s</span>
+                                    <span><i class="fa-solid fa-stopwatch"></i> Message Interval / Speed (s)</span>
+                                    <div class="manual-input-wrap">
+                                        <input type="number" id="messageDelayInput" step="0.5" min="0.5" max="300" value="5" class="manual-num-input">
+                                        <span class="unit-tag">sec</span>
+                                    </div>
                                 </div>
-                                <input type="range" id="messageDelaySlider" name="message_delay" min="1" max="120" value="5" class="range-slider">
+                                <input type="range" id="messageDelaySlider" name="message_delay" min="0.5" max="60" step="0.5" value="5" class="range-slider">
                                 <small>Do messages ke beech me wait time (seconds)</small>
+                            </div>
+                        </div>
+
+                        <!-- Custom Task Duration (Timer) -->
+                        <div class="duration-row">
+                            <div class="duration-item">
+                                <label class="slider-label" style="margin-bottom:4px;">
+                                    <span><i class="fa-solid fa-hourglass-half"></i> Total Task Duration (Minutes)</span>
+                                    <span class="helper-badge">0 = Infinite 24/7</span>
+                                </label>
+                                <div class="manual-input-wrap" style="width: 100%;">
+                                    <input type="number" id="runDurationInput" name="run_duration" step="1" min="0" max="1440" value="0" class="form-input manual-num-input" placeholder="0 = Non-stop 24/7, ya e.g. 30 for 30 mins" style="width: 100%;">
+                                </div>
+                                <small class="helper-text">Bot kitne minutes chal kar auto-stop ho jaye (24/7 non-stop ke liye 0 chhod dein).</small>
                             </div>
                         </div>
                     </div>

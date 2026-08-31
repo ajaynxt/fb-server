@@ -198,16 +198,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- Speed Sliders & Presets ---
-    typingDelaySlider.addEventListener("input", (e) => {
-        typingVal.textContent = `${e.target.value}s`;
-        clearActivePreset();
-    });
+    // --- Manual Speed & Duration Inputs Sync ---
+    const typingDelayInput = document.getElementById("typingDelayInput");
+    const messageDelayInput = document.getElementById("messageDelayInput");
+    const runDurationInput = document.getElementById("runDurationInput");
 
-    messageDelaySlider.addEventListener("input", (e) => {
-        intervalVal.textContent = `${e.target.value}s`;
-        clearActivePreset();
-    });
+    // Slider -> Manual Input
+    if (typingDelaySlider && typingDelayInput) {
+        typingDelaySlider.addEventListener("input", (e) => {
+            typingDelayInput.value = e.target.value;
+            clearActivePreset();
+        });
+        typingDelayInput.addEventListener("input", (e) => {
+            typingDelaySlider.value = e.target.value;
+            clearActivePreset();
+        });
+    }
+
+    // Interval Slider -> Manual Input
+    if (messageDelaySlider && messageDelayInput) {
+        messageDelaySlider.addEventListener("input", (e) => {
+            messageDelayInput.value = e.target.value;
+            clearActivePreset();
+        });
+        messageDelayInput.addEventListener("input", (e) => {
+            messageDelaySlider.value = e.target.value;
+            clearActivePreset();
+        });
+    }
 
     function clearActivePreset() {
         presetButtons.forEach(b => b.classList.remove("active"));
@@ -232,16 +250,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function setSpeed(typing, msgDelay) {
-        typingDelaySlider.value = typing;
-        typingVal.textContent = `${typing}s`;
-        messageDelaySlider.value = msgDelay;
-        intervalVal.textContent = `${msgDelay}s`;
+        if (typingDelaySlider) typingDelaySlider.value = typing;
+        if (typingDelayInput) typingDelayInput.value = typing;
+        if (messageDelaySlider) messageDelaySlider.value = msgDelay;
+        if (messageDelayInput) messageDelayInput.value = msgDelay;
     }
 
     // --- Live Speed Apply ---
     btnApplyLiveSpeed.addEventListener("click", async () => {
-        const typing = parseInt(typingDelaySlider.value);
-        const interval = parseInt(messageDelaySlider.value);
+        const typing = parseFloat(typingDelayInput ? typingDelayInput.value : typingDelaySlider.value);
+        const interval = parseFloat(messageDelayInput ? messageDelayInput.value : messageDelaySlider.value);
 
         try {
             const res = await fetch("/api/update_speed", {
@@ -250,9 +268,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ typing_delay: typing, message_delay: interval })
             });
             const data = await res.json();
-            showToast(data.message || "Speed updated!", "success");
+            if (data.success) {
+                showToast(`Live Speed Updated: Typing ${typing}s | Msg ${interval}s`, "success");
+            } else {
+                showToast("Speed update failed: " + data.message, "error");
+            }
         } catch (err) {
-            showToast("Failed to update live speed.", "error");
+            showToast("Speed update error: " + err.message, "error");
         }
     });
 

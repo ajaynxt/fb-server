@@ -697,9 +697,53 @@ body {
 .slider-label {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.manual-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    background: #080c14;
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    gap: 4px;
+}
+
+.manual-num-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    width: 50px;
+    text-align: right;
+}
+
+.unit-tag {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.duration-row {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.helper-badge {
+    font-size: 0.72rem;
+    color: var(--accent-amber);
+    background: rgba(255, 171, 0, 0.12);
+    border: 1px solid rgba(255, 171, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .slider-val {

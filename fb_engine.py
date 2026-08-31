@@ -584,19 +584,20 @@ class BotRunner:
         self.loop_count = 0
         self.current_line_idx = 0
         self.total_lines = 0
-        self.typing_delay = 3
-        self.message_delay = 5
+        self.typing_delay = 2.0
+        self.message_delay = 5.0
+        self.run_duration_mins = 0.0
         self.infinite_loop = True
         self.prefix = ""
 
-    def update_speed(self, typing_delay: int = None, message_delay: int = None):
+    def update_speed(self, typing_delay: float = None, message_delay: float = None):
         """Allows dynamically updating speed/delays in real-time while bot is running."""
         updated = []
         if typing_delay is not None:
-            self.typing_delay = max(1, int(typing_delay))
+            self.typing_delay = max(0.0, float(typing_delay))
             updated.append(f"Typing Delay: {self.typing_delay}s")
         if message_delay is not None:
-            self.message_delay = max(1, int(message_delay))
+            self.message_delay = max(0.5, float(message_delay))
             updated.append(f"Message Delay: {self.message_delay}s")
 
         self.add_log(f"⚡ [SPEED UPDATED] Live speed change: {', '.join(updated)}", "INFO")
@@ -616,8 +617,9 @@ class BotRunner:
         self.log_queue.put(log_entry)
 
     def start(self, cookies_input: str, target_id: str, target_type: str, messages: list,
-              prefix: str = "", typing_delay: int = 3, message_delay: int = 5,
-              infinite_loop: bool = True, task_mode: str = "chat", trigger_mode: str = "loop"):
+              prefix: str = "", typing_delay: float = 2.0, message_delay: float = 5.0,
+              infinite_loop: bool = True, task_mode: str = "chat", trigger_mode: str = "loop",
+              run_duration_mins: float = 0.0):
         """Starts the persistent bot in a background thread for Chat or Comments."""
         if self.is_running:
             return False, "Bot pehle se chal raha hai!"
@@ -660,21 +662,19 @@ class BotRunner:
         self.loop_count = 1
         self.current_line_idx = 0
         self.total_lines = len(messages)
-        self.typing_delay = max(1, int(typing_delay))
-        self.message_delay = max(1, int(message_delay))
+        self.typing_delay = max(0.0, float(typing_delay))
+        self.message_delay = max(0.5, float(message_delay))
+        self.run_duration_mins = max(0.0, float(run_duration_mins))
         self.infinite_loop = bool(infinite_loop)
         self.prefix = prefix.strip()
 
         mode_name = "💬 POST AUTO-COMMENTER" if self.task_mode == "comment" else f"📨 MESSENGER CHAT ({self.target_type.upper()})"
         trig_desc = "⚡ INSTANT AUTO-REPLY ON MSG/SEEN" if self.trigger_mode == "reply_seen" else ("🚀 HYBRID (LOOP + AUTO-REPLY)" if self.trigger_mode == "hybrid" else "🔄 CONTINUOUS TIMER LOOP")
         
+        duration_desc = f"{self.run_duration_mins} Minutes" if self.run_duration_mins > 0 else "Infinite 24/7 (Non-stop)"
         self.add_log(f"🚀 Bot Initialized as '{self.user_name}' (UID: {self.user_id})", "SUCCESS")
         self.add_log(f"🎯 Mode: {mode_name} | Trigger: {trig_desc} | Target: {self.target_id}", "INFO")
-        
-        if self.task_mode == "chat":
-            self.add_log(f"⚡ Settings: Auto-Seen = ON | Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | 24/7 Loop = ON", "INFO")
-        else:
-            self.add_log(f"⚡ Settings: Comment Interval = {self.message_delay}s | 24/7 Loop = ON", "INFO")
+        self.add_log(f"⏱️ Manual Speed: Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | Duration = {duration_desc}", "INFO")
 
         # Launch worker thread
         self.thread = threading.Thread(
@@ -724,7 +724,7 @@ class BotRunner:
             if self.stop_event.is_set():
                 return False
             self.pause_event.wait()
-            time.sleep(step)
+            time.sleep(min(step, seconds - elapsed))
             elapsed += step
         return True
 
@@ -749,6 +749,13 @@ class BotRunner:
 
             while not self.stop_event.is_set():
                 self.pause_event.wait()
+                
+                # Check task duration limit
+                if self.run_duration_mins > 0 and (time.time() - self.start_time) >= (self.run_duration_mins * 60):
+                    self.add_log(f"⏰ [DURATION COMPLETE] Target run duration ({self.run_duration_mins} mins) complete ho gaya! Stopping.", "SUCCESS")
+                    self.is_running = False
+                    self.status = "COMPLETED"
+                    break
                 
                 info = fb_session.get_latest_thread_info(self.target_id, is_group=is_group)
                 trigger_reason = None
@@ -828,6 +835,14 @@ class BotRunner:
                     break
 
                 self.pause_event.wait()
+                
+                # Check task duration limit
+                if self.run_duration_mins > 0 and (time.time() - self.start_time) >= (self.run_duration_mins * 60):
+                    self.add_log(f"⏰ [DURATION COMPLETE] Target run duration ({self.run_duration_mins} mins) complete! Stopping.", "SUCCESS")
+                    self.is_running = False
+                    self.status = "COMPLETED"
+                    return
+
                 self.current_line_idx = idx + 1
                 line = raw_line.strip()
                 if not line:
