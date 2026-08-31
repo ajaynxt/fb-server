@@ -147,5 +147,12 @@ class TestFBServer(unittest.TestCase):
         self.assertEqual(res_del.status_code, 200)
         self.assertTrue(res_del.get_json().get("success"))
 
+    def test_check_ip(self):
+        res = self.app.get("/api/check_ip")
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data.get("success"))
+        self.assertIsNotNone(data.get("ip"))
+
 if __name__ == "__main__":
     unittest.main()

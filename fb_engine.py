@@ -124,10 +124,18 @@ def parse_cookies(cookie_input: str) -> dict:
 class FacebookSession:
     """Manages Facebook session, token extraction, mark seen, typing, and message delivery."""
 
-    def __init__(self, cookies: dict):
+    def __init__(self, cookies: dict, proxy: str = ""):
         self.cookies = cookies
         self.access_token = self.cookies.get("access_token", "")
+        self.proxy = proxy.strip() if proxy else ""
         self.session = requests.Session()
+        
+        # Configure Indian / Custom Proxy if provided
+        if self.proxy:
+            self.session.proxies = {
+                "http": self.proxy,
+                "https": self.proxy
+            }
         
         # Build direct Cookie header string to ensure cookies are always sent to all domains
         self.cookie_header_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items() if k != "access_token"])
@@ -743,7 +751,7 @@ class BotRunner:
     def start(self, cookies_input: str, target_id: str, target_type: str, messages: list,
               prefix: str = "", typing_delay: float = 2.0, message_delay: float = 5.0,
               infinite_loop: bool = True, task_mode: str = "chat", trigger_mode: str = "loop",
-              run_duration_mins: float = 0.0):
+              run_duration_mins: float = 0.0, proxy: str = ""):
         """Starts the persistent bot in a background thread for Chat or Comments."""
         if self.is_running:
             return False, "Bot pehle se chal raha hai!"
@@ -762,7 +770,7 @@ class BotRunner:
         if not cookies:
             return False, "Cookies format invalid hai."
 
-        fb_session = FacebookSession(cookies)
+        fb_session = FacebookSession(cookies, proxy=proxy)
         valid, msg = fb_session.validate_and_extract_tokens()
         if not valid:
             return False, f"FB Cookie Validation Failed: {msg}"

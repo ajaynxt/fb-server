@@ -612,6 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 cookies: cookieInput ? cookieInput.value : "",
                 messages: messagesInput ? messagesInput.value : "",
                 prefix: prefixInput ? prefixInput.value : "",
+                proxy: proxyInput ? proxyInput.value : "",
                 typing_delay: typingDelayInput ? typingDelayInput.value : (typingDelaySlider ? typingDelaySlider.value : "2"),
                 message_delay: messageDelayInput ? messageDelayInput.value : (messageDelaySlider ? messageDelaySlider.value : "5"),
                 run_duration: runDurationInput ? runDurationInput.value : "0",
@@ -670,9 +671,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (mTab) mTab.click();
             }
 
-            // Prefix
+            // Prefix & Proxy
             if (data.prefix && prefixInput) {
                 prefixInput.value = data.prefix;
+            }
+            if (data.proxy && proxyInput) {
+                proxyInput.value = data.proxy;
             }
 
             // Speeds
@@ -689,6 +693,50 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast("Saved session auto-restored!", "info");
         } catch (e) {}
     }
+
+    // --- Proxy & Live IP Location Checker (India Anti-Ban Gateway) ---
+    const proxyInput = document.getElementById("proxyInput");
+    const btnCheckIp = document.getElementById("btnCheckIp");
+    const currentIpText = document.getElementById("currentIpText");
+    const currentCountryText = document.getElementById("currentCountryText");
+
+    async function checkLiveIp(proxyUrl = "") {
+        if (currentIpText) currentIpText.textContent = "Checking IP...";
+        if (currentCountryText) currentCountryText.textContent = "Locating...";
+
+        try {
+            const res = await fetch("/api/check_ip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ proxy: proxyUrl || (proxyInput ? proxyInput.value.trim() : "") })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const country = data.country || "India";
+                const city = data.city ? ` - ${data.city}` : "";
+                const flag = data.country_code === "IN" ? "🇮🇳" : "🌐";
+                if (currentIpText) currentIpText.textContent = `${data.ip}`;
+                if (currentCountryText) currentCountryText.textContent = `${flag} ${country}${city}`;
+            } else {
+                if (currentIpText) currentIpText.textContent = "Cloud Host IP";
+                if (currentCountryText) currentCountryText.textContent = "🌐 Datacenter";
+            }
+        } catch (err) {
+            if (currentIpText) currentIpText.textContent = "Active";
+            if (currentCountryText) currentCountryText.textContent = "🌐 Online";
+        }
+    }
+
+    if (btnCheckIp) {
+        btnCheckIp.addEventListener("click", () => {
+            const prx = proxyInput ? proxyInput.value.trim() : "";
+            checkLiveIp(prx);
+            showToast(prx ? "Checking Proxy IP..." : "Checking Server IP...", "info");
+        });
+    }
+
+    // Initial IP Check
+    setTimeout(checkLiveIp, 1500);
 
     // Auto-save on every change in the form
     if (form) {

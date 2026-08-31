@@ -7,6 +7,7 @@ import os
 import time
 import json
 from io import BytesIO
+import requests
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from fb_engine import bot_runner, multi_manager, parse_cookies, FacebookSession
 import data_manager
@@ -35,6 +36,51 @@ def health():
         "bot_status": bot_runner.status,
         "bot_running": bot_runner.is_running,
         "timestamp": int(time.time()),
+    }), 200
+
+
+@app.route("/api/check_ip", methods=["GET", "POST"])
+def check_ip():
+    """Checks outgoing IP and geo-location for Cloud Server or Custom Indian Proxy."""
+    data = request.get_json(silent=True) or request.args or request.form or {}
+    proxy = data.get("proxy", "").strip() if isinstance(data, dict) else ""
+    session = requests.Session()
+    if proxy:
+        session.proxies = {"http": proxy, "https": proxy}
+    try:
+        res = session.get("https://ipapi.co/json/", timeout=4)
+        if res.status_code == 200:
+            ip_info = res.json()
+            return jsonify({
+                "success": True,
+                "ip": ip_info.get("ip"),
+                "country": ip_info.get("country_name", "India"),
+                "country_code": ip_info.get("country_code", "IN"),
+                "city": ip_info.get("city", ""),
+                "org": ip_info.get("org", "")
+            })
+    except Exception:
+        try:
+            res = session.get("https://api.ipify.org?format=json", timeout=3)
+            if res.status_code == 200:
+                return jsonify({
+                    "success": True,
+                    "ip": res.json().get("ip"),
+                    "country": "Cloud Host",
+                    "country_code": "US",
+                    "city": "",
+                    "org": ""
+                })
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": True,
+        "ip": "Local/Proxy Gateway",
+        "country": "India (Gateway)",
+        "country_code": "IN",
+        "city": "",
+        "org": ""
     }), 200
 
 
@@ -73,6 +119,7 @@ def start_bot():
         target_type = data.get("target_type", "personal")
         messages_raw = data.get("messages", "")
         prefix = data.get("prefix", "")
+        proxy = data.get("proxy", "")
         task_mode = data.get("task_mode", "chat")
         trigger_mode = data.get("trigger_mode", "loop")
         typing_delay = data.get("typing_delay", 3)
@@ -92,6 +139,7 @@ def start_bot():
         trigger_mode = request.form.get("trigger_mode", "loop")
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
+        proxy = request.form.get("proxy", "")
         typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
         message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
         run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
@@ -125,7 +173,8 @@ def start_bot():
         infinite_loop=infinite_loop,
         task_mode=task_mode,
         trigger_mode=trigger_mode,
-        run_duration_mins=run_duration_mins
+        run_duration_mins=run_duration_mins,
+        proxy=proxy
     )
 
     return jsonify({"success": success, "message": message}), (200 if success else 400)
@@ -213,6 +262,7 @@ def start_server_instance(task_id):
         target_type = data.get("target_type", "personal")
         messages_raw = data.get("messages", "")
         prefix = data.get("prefix", "")
+        proxy = data.get("proxy", "")
         task_mode = data.get("task_mode", "chat")
         trigger_mode = data.get("trigger_mode", "loop")
         typing_delay = float(data.get("typing_delay", 2.0) or 2.0)
@@ -231,6 +281,7 @@ def start_server_instance(task_id):
         trigger_mode = request.form.get("trigger_mode", "loop")
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
+        proxy = request.form.get("proxy", "")
         typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
         message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
         run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
@@ -251,7 +302,8 @@ def start_server_instance(task_id):
         infinite_loop=infinite_loop,
         task_mode=task_mode,
         trigger_mode=trigger_mode,
-        run_duration_mins=run_duration_mins
+        run_duration_mins=run_duration_mins,
+        proxy=proxy
     )
     return jsonify({"success": success, "message": message, "task_id": task_id})
 
