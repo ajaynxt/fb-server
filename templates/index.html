@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=5.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=6.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -273,6 +273,9 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Live Bot Action Feedback Box -->
+                <div id="botLiveActionFeedback" class="alert-box" style="display:none; margin: 12px 18px 0 18px; font-weight:700; font-size:0.88rem; border-radius: var(--radius-sm);"></div>
 
                 <form id="botConfigForm" class="config-form">
                     <input type="hidden" id="currentTaskIdInput" name="task_id" value="default">
@@ -691,6 +694,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=5.0"></script>
+    <script src="/static/js/app.js?v=6.0"></script>
 </body>
 </html>

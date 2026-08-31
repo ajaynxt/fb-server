@@ -1234,6 +1234,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        const botLiveActionFeedback = document.getElementById("botLiveActionFeedback");
+        if (botLiveActionFeedback) {
+            botLiveActionFeedback.style.display = "flex";
+            botLiveActionFeedback.className = "alert-box info";
+            botLiveActionFeedback.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ⏳ Starting bot & verifying session for Target: <b>${escapeHtml(targetId)}</b>...`;
+        }
+
         btnStart.disabled = true;
         btnStart.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> STARTING...`;
         if (btnStartBottom) {
@@ -1249,6 +1256,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
 
             if (data.success) {
+                if (botLiveActionFeedback) {
+                    botLiveActionFeedback.style.display = "flex";
+                    botLiveActionFeedback.className = "alert-box success";
+                    botLiveActionFeedback.innerHTML = `<i class="fa-solid fa-circle-check"></i> <b>ACTIVE:</b> ${escapeHtml(data.message)}`;
+                }
                 showToast(data.message, "success");
                 updateUIState(true);
                 loadServerInstances();
@@ -1256,6 +1268,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     terminalContainer.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
             } else {
+                if (botLiveActionFeedback) {
+                    botLiveActionFeedback.style.display = "flex";
+                    botLiveActionFeedback.className = "alert-box danger";
+                    botLiveActionFeedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <b>Start Failed:</b> ${escapeHtml(data.message || "Failed to start bot.")}`;
+                }
                 showToast(data.message || "Failed to start bot.", "error");
                 btnStart.disabled = false;
                 btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
@@ -1265,6 +1282,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         } catch (err) {
+            if (botLiveActionFeedback) {
+                botLiveActionFeedback.style.display = "flex";
+                botLiveActionFeedback.className = "alert-box danger";
+                botLiveActionFeedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <b>Network Error:</b> ${escapeHtml(err.message)}`;
+            }
             showToast(`Connection error: ${err.message}`, "error");
             btnStart.disabled = false;
             btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
