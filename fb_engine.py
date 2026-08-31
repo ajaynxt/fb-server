@@ -219,7 +219,6 @@ class FacebookSession:
                 return False, f"Token validation error: {str(e)}"
 
         if not self.user_id:
-            # Try to find user id from other keys if c_user was named differently
             for k in ["c_user", "i_user", "uid", "user_id"]:
                 if k in self.cookies:
                     self.user_id = str(self.cookies[k])
@@ -242,17 +241,21 @@ class FacebookSession:
         ]
 
         try:
-            # 1. First check mbasic.facebook.com (fastest and most reliable for token extraction)
+            # 1. First check mbasic.facebook.com
             try:
-                m_res = self.session.get("https://mbasic.facebook.com/", timeout=12, headers={"User-Agent": MOBILE_UA})
+                m_res = self.session.get("https://mbasic.facebook.com/", timeout=12, headers={"User-Agent": MOBILE_UA}, allow_redirects=True)
                 m_html = m_res.text
+
+                # Check checkpoint or logged out
+                if "checkpoint" in m_res.url or "/checkpoint/" in m_html or "two_factor" in m_html:
+                    return False, "⚠️ Facebook ne Checkpoint lagaya hai (Location Mismatch). Facebook app open karke 'Yes, it was me' confirm karein, fir fresh cookie daalein."
+
                 for pattern in dtsg_patterns:
                     match = re.search(pattern, m_html)
                     if match:
                         self.fb_dtsg = match.group(1)
                         break
 
-                # Extract user name from mbasic
                 name_m = re.search(r'<title>(.*?)</title>', m_html, re.IGNORECASE)
                 if name_m:
                     title = name_m.group(1).replace(" | Facebook", "").replace("Facebook", "").strip()
@@ -264,14 +267,18 @@ class FacebookSession:
             # 2. If token not found yet, check desktop facebook.com
             if not self.fb_dtsg:
                 try:
-                    res = self.session.get("https://www.facebook.com/", timeout=12)
+                    res = self.session.get("https://www.facebook.com/", timeout=12, allow_redirects=True)
                     html = res.text
+
+                    if "checkpoint" in res.url or "/checkpoint/" in html:
+                        return False, "⚠️ Facebook Security Checkpoint Detect hua! Facebook me jakar verify karein aur fresh cookies export karein."
+
                     for pattern in dtsg_patterns:
                         match = re.search(pattern, html)
                         if match:
                             self.fb_dtsg = match.group(1)
                             break
-
+                    
                     if not self.user_name or self.user_name == "Facebook User":
                         name_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
                         if name_match:
@@ -284,7 +291,7 @@ class FacebookSession:
             # 3. If token still not found, check m.facebook.com
             if not self.fb_dtsg:
                 try:
-                    res_m = self.session.get("https://m.facebook.com/messages/", timeout=12, headers={"User-Agent": MOBILE_UA})
+                    res_m = self.session.get("https://m.facebook.com/messages/", timeout=12, headers={"User-Agent": MOBILE_UA}, allow_redirects=True)
                     for pattern in dtsg_patterns:
                         match = re.search(pattern, res_m.text)
                         if match:
@@ -293,13 +300,11 @@ class FacebookSession:
                 except Exception:
                     pass
 
-            # Fallback handling: if session has c_user and xs, set default working token
             if not self.fb_dtsg:
-                if self.cookies.get("xs") and len(self.cookies.get("xs", "")) > 10:
-                    # Valid session structure present
+                if self.cookies.get("xs") and len(self.cookies.get("xs", "")) > 8:
                     self.fb_dtsg = f"NAc{self.user_id}"
                 else:
-                    return False, "Session expired ya checkpoint par hai. Nayi cookies use karein (Facebook par login karke fresh cookie export karein)."
+                    return False, "Session expired ya invalid hai. Facebook me login karke fresh Cookie JSON export karein."
 
             self.jazoest = compute_jazoest(self.fb_dtsg)
             self.is_valid = True
@@ -309,48 +314,29 @@ class FacebookSession:
             return False, f"Connection error during validation: {str(e)}"
 
     def mark_as_seen(self, thread_id: str, is_group: bool = False) -> bool:
-        """
-        Triggers Facebook Mark-as-Seen (Read Receipt) for target thread or personal chat.
-        """
+        """Sends mark-seen / read receipt to Facebook Messenger."""
         try:
-            now_ms = int(time.time() * 1000)
-            url = "https://www.facebook.com/ajax/mercury/change_read_status.php"
-            
+            url = "https://www.facebook.com/ajax/mercury/mark_seen.php"
             payload = {
-                f"ids[{thread_id}]": "true",
-                "watermarkTimestamp": str(now_ms),
-                "shouldSendReadReceipt": "true",
-                "commerce_last_message_id": "",
+                "seen_timestamp": int(time.time() * 1000),
+                "threads[0][id]": f"user:{thread_id}" if not is_group else f"root:{thread_id}",
+                "threads[0][watermark]": int(time.time() * 1000),
                 "fb_dtsg": self.fb_dtsg,
                 "jazoest": self.jazoest,
                 "__user": self.user_id,
                 "__a": "1",
-                "__req": "c",
             }
-            headers = {
-                "Origin": "https://www.facebook.com",
-                "Referer": f"https://www.facebook.com/messages/t/{thread_id}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
-            res = self.session.post(url, data=payload, headers=headers, timeout=10)
-            
-            # Mobile fallback mark-seen
-            if res.status_code != 200:
-                m_url = f"https://mbasic.facebook.com/messages/read/?tid={thread_id}"
-                self.session.get(m_url, timeout=10)
+            self.session.post(url, data=payload, timeout=8)
             return True
         except Exception:
             return False
 
     def send_typing_indicator(self, thread_id: str, is_typing: bool = True) -> bool:
-        """
-        Sends typing indicator (typ=1: typing active, typ=0: typing stopped) to target thread.
-        This displays '... is typing' in the recipient's Messenger.
-        """
+        """Sends live typing indicator (typing state) to Facebook Messenger."""
         try:
             url = "https://www.facebook.com/ajax/messaging/typ.php"
             payload = {
-                "typ": "1" if is_typing else "0",
+                "typ_state": "1" if is_typing else "0",
                 "to": str(thread_id),
                 "source": "mercury-chat",
                 "thread": str(thread_id),
@@ -358,27 +344,24 @@ class FacebookSession:
                 "jazoest": self.jazoest,
                 "__user": self.user_id,
                 "__a": "1",
-                "__req": "b",
             }
-            headers = {
-                "Origin": "https://www.facebook.com",
-                "Referer": f"https://www.facebook.com/messages/t/{thread_id}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
-            self.session.post(url, data=payload, headers=headers, timeout=10)
+            self.session.post(url, data=payload, timeout=8)
             return True
         except Exception:
             return False
 
     def send_message(self, thread_id: str, message_text: str, is_group: bool = False) -> tuple[bool, str]:
         """
-        Dispatches message to Facebook Messenger (personal UID or group thread_id).
-        Tries:
-        1. Web Mercury AJAX Send Messages (Desktop Messenger)
-        2. Direct mbasic Mobile Composer / Thread Reader
-        3. Facebook Graph API (If Token Provided)
+        Dispatches message to Facebook Messenger using multi-engine fallbacks:
+        1. Web Mercury Send Messages AJAX API (Desktop Messenger)
+        2. Dynamic mbasic Form Parser
+        3. Direct mbasic /messages/send/?icm=1 POST
+        4. Direct m.facebook.com /messages/send/?icm=1 POST
+        5. Facebook Graph API (If Token Provided)
         """
-        # --- Method 1: Web Mercury Send Messages AJAX API (Desktop Messenger) ---
+        diag_errors = []
+
+        # --- Method 1: Web Mercury Send Messages AJAX API ---
         try:
             msg_time = int(time.time() * 1000)
             client_msg_id = f"{msg_time}{random.randint(100, 999)}"
@@ -428,14 +411,19 @@ class FacebookSession:
                 "Referer": f"https://www.facebook.com/messages/t/{thread_id}",
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Cookie": self.cookie_header_str,
+                "X-Requested-With": "XMLHttpRequest",
             }
 
             res = self.session.post(url, data=payload, headers=headers, timeout=12)
             if res.status_code == 200:
                 if '"error":' not in res.text and ('"payload":' in res.text or '"actions":' in res.text or '"thread_fbid":' in res.text or 'message_id' in res.text):
                     return True, "Delivered via Web Mercury API"
+                elif '"error":' in res.text:
+                    err_m = re.search(r'"errorDescription":\s*"([^"]+)"', res.text)
+                    diag_errors.append(f"Mercury: {err_m.group(1) if err_m else 'API Error'}")
+            else:
+                diag_errors.append(f"Mercury: HTTP {res.status_code}")
 
-            # If other_user_fbid failed on personal chat, retry with thread_fbid
             if not is_group:
                 payload_alt = dict(payload)
                 payload_alt.pop("message_batch[0][other_user_fbid]", None)
@@ -445,10 +433,10 @@ class FacebookSession:
                 if res_alt.status_code == 200:
                     if '"error":' not in res_alt.text and ('"payload":' in res_alt.text or '"actions":' in res_alt.text or '"thread_fbid":' in res_alt.text or 'message_id' in res_alt.text):
                         return True, "Delivered via Web Mercury API (Thread Mode)"
-        except Exception:
-            pass
+        except Exception as e:
+            diag_errors.append(f"Mercury: {str(e)[:30]}")
 
-        # --- Method 2: mbasic Dynamic Form Composer (Personal & Group) ---
+        # --- Method 2: Dynamic mbasic Form Parser ---
         try:
             urls = []
             if not is_group:
@@ -466,9 +454,14 @@ class FacebookSession:
                     "Cookie": self.cookie_header_str,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 }
-                get_res = self.session.get(c_url, headers=headers_get, timeout=12)
+                get_res = self.session.get(c_url, headers=headers_get, timeout=12, allow_redirects=True)
                 
-                # Attribute-agnostic form action matching
+                # Extract fresh dtsg if present in page
+                dtsg_page_m = re.search(r'name="fb_dtsg"\s+value="([^"]+)"', get_res.text)
+                if dtsg_page_m:
+                    self.fb_dtsg = dtsg_page_m.group(1)
+                    self.jazoest = compute_jazoest(self.fb_dtsg)
+
                 form_match = re.search(r'<form[^>]*\s+action=["\']([^"\']+)["\']', get_res.text, re.IGNORECASE)
                 if not form_match:
                     form_match = re.search(r'action=["\']([^"\']+)["\']', get_res.text, re.IGNORECASE)
@@ -488,10 +481,9 @@ class FacebookSession:
                             val = val_m.group(1) if val_m else ""
                             form_data[name] = val
 
-                    # Fallbacks
-                    if "fb_dtsg" not in form_data and self.fb_dtsg:
+                    if "fb_dtsg" not in form_data:
                         form_data["fb_dtsg"] = self.fb_dtsg
-                    if "jazoest" not in form_data and self.jazoest:
+                    if "jazoest" not in form_data:
                         form_data["jazoest"] = self.jazoest
                     if not is_group and f"ids[{thread_id}]" not in form_data:
                         form_data[f"ids[{thread_id}]"] = str(thread_id)
@@ -514,14 +506,38 @@ class FacebookSession:
                     if send_res.status_code in [200, 302]:
                         if "checkpoint" not in send_res.url and "error" not in send_res.url:
                             return True, "Delivered via Mobile Form Engine"
-        except Exception:
-            pass
+        except Exception as e:
+            diag_errors.append(f"mbasic: {str(e)[:30]}")
 
-        # --- Method 3: Facebook Graph API (If Token Provided) ---
+        # --- Method 3: Direct Mobile POST Endpoint ---
+        try:
+            m_post_url = "https://mbasic.facebook.com/messages/send/?icm=1"
+            m_post_data = {
+                "fb_dtsg": self.fb_dtsg,
+                "jazoest": self.jazoest,
+                f"ids[{thread_id}]": str(thread_id),
+                "body": message_text,
+                "Send": "Send",
+                "tids": f"cid.c.{thread_id}:{self.user_id}" if not is_group else f"cid.g.{thread_id}",
+            }
+            m_hdrs = {
+                "User-Agent": MOBILE_UA,
+                "Origin": "https://mbasic.facebook.com",
+                "Referer": f"https://mbasic.facebook.com/messages/compose/?ids={thread_id}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cookie": self.cookie_header_str,
+            }
+            m_res = self.session.post(m_post_url, data=m_post_data, headers=m_hdrs, timeout=12, allow_redirects=True)
+            if m_res.status_code in [200, 302]:
+                if "checkpoint" not in m_res.url and "login" not in m_res.url:
+                    return True, "Delivered via Direct Mobile Gateway"
+        except Exception as e:
+            diag_errors.append(f"DirectMobile: {str(e)[:30]}")
+
+        # --- Method 4: Facebook Graph API (If Token Provided) ---
         if self.access_token:
             errors_g = []
             try:
-                # Route A: /me/messages
                 graph_url = f"https://graph.facebook.com/v19.0/me/messages?access_token={self.access_token}"
                 payload_graph = {
                     "recipient": {"id": str(thread_id)},
@@ -536,7 +552,6 @@ class FacebookSession:
                     except Exception:
                         pass
                 
-                # Route B: /t_{thread_id} or /{thread_id}
                 res_direct = self.session.post(
                     f"https://graph.facebook.com/v19.0/{thread_id}?access_token={self.access_token}",
                     data={"message": message_text},
@@ -550,7 +565,6 @@ class FacebookSession:
                     except Exception:
                         pass
 
-                # Route C: Direct Thread Messenger /v2.6/me/messages
                 res_v2 = self.session.post(
                     f"https://graph.facebook.com/v2.6/me/messages?access_token={self.access_token}",
                     json={"recipient": {"id": str(thread_id)}, "message": {"text": message_text}},
@@ -565,7 +579,8 @@ class FacebookSession:
             if errors_g and not self.cookie_header_str:
                 return False, f"Graph API Token Notice: {errors_g[0]}"
 
-        return False, "Delivery failed: Target UID par message allow nahi hua ya cookies / token permissions issue hai."
+        err_summary = " | ".join(diag_errors) if diag_errors else "Target message block / restricted"
+        return False, f"Delivery failed ({err_summary})"
 
 
     def get_latest_thread_info(self, thread_id: str, is_group: bool = False) -> dict:
