@@ -1182,9 +1182,25 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(loadServerInstances, 3000);
     loadServerInstances();
 
-    // --- Start Bot ---
-    btnStart.addEventListener("click", async (e) => {
-        e.preventDefault();
+    // --- Start Bot Controller ---
+    const btnStartBottom = document.getElementById("btnStartBottom");
+
+    function highlightField(el, msg) {
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.focus();
+            el.style.borderColor = "#ff3b30";
+            el.style.boxShadow = "0 0 10px rgba(255, 59, 48, 0.5)";
+            setTimeout(() => {
+                el.style.borderColor = "";
+                el.style.boxShadow = "";
+            }, 3000);
+        }
+        showToast(msg, "error");
+    }
+
+    async function handleStartBot(e) {
+        if (e) e.preventDefault();
 
         // Sync inputs if user pasted in alternative tabs
         if (!cookieInput.value.trim() && tokenDirectInput && tokenDirectInput.value.trim()) {
@@ -1196,27 +1212,30 @@ document.addEventListener("DOMContentLoaded", () => {
         // Validation checks
         const targetId = formData.get("target_id") || (targetIdInput ? targetIdInput.value : "");
         if (!targetId || !targetId.trim()) {
-            showToast("Target ID / Group ID daalna zaroori hai!", "error");
-            if (targetIdInput) targetIdInput.focus();
+            highlightField(targetIdInput, "Target ID / Group ID daalna zaroori hai!");
             return;
         }
 
         const cookieText = formData.get("cookies") || (cookieInput ? cookieInput.value : "");
         const cookieFile = (cookieFileInput && cookieFileInput.files) ? cookieFileInput.files[0] : null;
         if (!cookieText.trim() && !cookieFile) {
-            showToast("Facebook Cookies (JSON) ya Access Token paste karein!", "error");
+            highlightField(cookieInput, "Facebook Cookies (JSON) ya Access Token paste karein!");
             return;
         }
 
         const msgText = formData.get("messages") || (messagesInput ? messagesInput.value : "");
         const msgFile = (messagesFileInput && messagesFileInput.files) ? messagesFileInput.files[0] : null;
         if (!msgText.trim() && !msgFile) {
-            showToast("Messages text daalein ya .txt file upload karein!", "error");
+            highlightField(messagesInput, "Messages text daalein ya .txt file upload karein!");
             return;
         }
 
         btnStart.disabled = true;
         btnStart.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> STARTING...`;
+        if (btnStartBottom) {
+            btnStartBottom.disabled = true;
+            btnStartBottom.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> STARTING...`;
+        }
 
         try {
             const res = await fetch(`/api/servers/${currentSelectedTaskId}/start`, {
@@ -1229,17 +1248,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast(data.message, "success");
                 updateUIState(true);
                 loadServerInstances();
+                if (terminalContainer) {
+                    terminalContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             } else {
                 showToast(data.message || "Failed to start bot.", "error");
                 btnStart.disabled = false;
                 btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
+                if (btnStartBottom) {
+                    btnStartBottom.disabled = false;
+                    btnStartBottom.innerHTML = `<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)`;
+                }
             }
         } catch (err) {
             showToast(`Connection error: ${err.message}`, "error");
             btnStart.disabled = false;
             btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
+            if (btnStartBottom) {
+                btnStartBottom.disabled = false;
+                btnStartBottom.innerHTML = `<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)`;
+            }
         }
-    });
+    }
+
+    if (btnStart) btnStart.addEventListener("click", handleStartBot);
+    if (btnStartBottom) btnStartBottom.addEventListener("click", handleStartBot);
 
     // --- Stop Bot (PythonAnywhere One-Click Stop) ---
     btnStop.addEventListener("click", async () => {
@@ -1301,14 +1334,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (running) {
             btnStart.disabled = true;
+            if (btnStartBottom) btnStartBottom.disabled = true;
             btnStop.disabled = false;
             btnPause.disabled = false;
-            btnStart.innerHTML = `<i class="fa-solid fa-play"></i> BOT RUNNING`;
+            btnResume.style.display = "none";
+            btnPause.style.display = "inline-flex";
 
-            globalStatusPill.className = `status-pill ${status.toLowerCase()}`;
-            globalStatusText.textContent = status.toUpperCase();
+            globalStatusPill.className = "status-pill running";
+            globalStatusText.textContent = status;
         } else {
             btnStart.disabled = false;
+            btnStart.innerHTML = `<i class="fa-solid fa-play"></i> START BOT`;
+            if (btnStartBottom) {
+                btnStartBottom.disabled = false;
+                btnStartBottom.innerHTML = `<i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)`;
+            }
             btnStop.disabled = true;
             btnPause.disabled = true;
             btnResume.style.display = "none";

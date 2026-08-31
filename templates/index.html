@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=4.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=5.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -265,10 +265,10 @@
                     </div>
                     <!-- Big Quick Action Buttons (PythonAnywhere Style) -->
                     <div class="top-actions">
-                        <button id="btnStart" class="btn btn-primary">
+                        <button id="btnStart" type="button" class="btn btn-primary">
                             <i class="fa-solid fa-play"></i> START BOT
                         </button>
-                        <button id="btnStop" class="btn btn-danger" disabled>
+                        <button id="btnStop" type="button" class="btn btn-danger" disabled>
                             <i class="fa-solid fa-stop"></i> STOP BOT
                         </button>
                     </div>
@@ -553,12 +553,15 @@
                         </div>
                     </div>
 
-                    <!-- Secondary Control Buttons (Pause/Resume) -->
-                    <div class="bottom-action-buttons">
-                        <button type="button" id="btnPause" class="btn btn-secondary" disabled>
+                    <!-- Primary & Secondary Control Buttons -->
+                    <div class="bottom-action-buttons" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:24px;">
+                        <button type="button" id="btnStartBottom" class="btn btn-primary" style="flex:2; font-size:1.05rem; padding:14px 20px; font-weight:800; background:linear-gradient(135deg, #00ff66, #0084ff); color:#000000; box-shadow: 0 4px 15px rgba(0, 255, 102, 0.4); border:none; cursor:pointer;">
+                            <i class="fa-solid fa-play"></i> 🚀 START BOT (24/7 LIVE)
+                        </button>
+                        <button type="button" id="btnPause" class="btn btn-secondary" disabled style="flex:1;">
                             <i class="fa-solid fa-pause"></i> PAUSE
                         </button>
-                        <button type="button" id="btnResume" class="btn btn-secondary" style="display:none;">
+                        <button type="button" id="btnResume" class="btn btn-secondary" style="display:none; flex:1;">
                             <i class="fa-solid fa-play"></i> RESUME
                         </button>
                     </div>
@@ -688,6 +691,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=4.0"></script>
+    <script src="/static/js/app.js?v=5.0"></script>
 </body>
 </html>
