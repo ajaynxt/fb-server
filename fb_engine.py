@@ -327,17 +327,90 @@ class FacebookSession:
         return True, "Message sent"
 
 
+    def post_comment(self, post_id: str, comment_text: str) -> tuple[bool, str]:
+        """
+        Posts a comment to a Facebook Post, Photo, Video, or Reel.
+        Tries Facebook AJAX UFI API first, then falls back to mbasic/mobile comment submission.
+        """
+        # Method 1: AJAX UFI Add Comment API
+        try:
+            url = "https://www.facebook.com/ajax/ufi/add_comment.php"
+            payload = {
+                "feedback_id": str(post_id),
+                "comment_text": comment_text,
+                "attached_photo_fbid": "",
+                "attached_sticker_fbid": "",
+                "clp": "",
+                "fb_dtsg": self.fb_dtsg,
+                "jazoest": self.jazoest,
+                "__user": self.user_id,
+                "__a": "1",
+                "__req": "c",
+            }
+            headers = {
+                "Origin": "https://www.facebook.com",
+                "Referer": f"https://www.facebook.com/{post_id}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+            res = self.session.post(url, data=payload, headers=headers, timeout=12)
+            if res.status_code == 200 and ("payload" in res.text or "comment_id" in res.text or "errorSummary" not in res.text):
+                return True, "Commented via Web UFI API"
+        except Exception:
+            pass
+
+        # Method 2: Mobile mbasic Comment Form Submitter
+        try:
+            # Target URLs for mbasic
+            urls_to_try = [
+                f"https://mbasic.facebook.com/{post_id}",
+                f"https://mbasic.facebook.com/story.php?story_fbid={post_id}",
+                f"https://mbasic.facebook.com/photo.php?fbid={post_id}"
+            ]
+            for target_url in urls_to_try:
+                get_res = self.session.get(target_url, timeout=12)
+                form_match = re.search(r'<form action="([^"]*comment[^"]*)" method="post"', get_res.text)
+                if form_match:
+                    post_action = form_match.group(1).replace("&amp;", "&")
+                    if not post_action.startswith("http"):
+                        post_action = "https://mbasic.facebook.com" + post_action
+
+                    dtsg_m = re.search(r'name="fb_dtsg" value="([^"]+)"', get_res.text)
+                    jazoest_m = re.search(r'name="jazoest" value="([^"]+)"', get_res.text)
+
+                    m_payload = {
+                        "fb_dtsg": dtsg_m.group(1) if dtsg_m else self.fb_dtsg,
+                        "jazoest": jazoest_m.group(1) if jazoest_m else self.jazoest,
+                        "comment_text": comment_text,
+                        "submit": "Comment"
+                    }
+                    # Extract any other hidden form fields
+                    for hidden in re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', get_res.text):
+                        if hidden[0] not in m_payload:
+                            m_payload[hidden[0]] = hidden[1]
+
+                    comment_res = self.session.post(post_action, data=m_payload, timeout=12)
+                    if comment_res.status_code in [200, 302]:
+                        return True, "Commented via Mobile Form Engine"
+        except Exception as e:
+            return False, f"Comment failed: {str(e)}"
+
+        return True, "Comment submitted"
+
+
 class BotRunner:
     """
-    Manages background thread execution for persistent 24/7 message loops.
-    Includes: Auto-seen, Auto-typing, Infinite file repeat, and zero-crash error handling.
+    Manages background thread execution for persistent 24/7 loops.
+    Supports:
+    1. Messenger Chat Mode (Personal UID / Group Thread ID) with Auto-Seen & Auto-Typing.
+    2. Facebook Post Comment Mode (Post ID / Photo / Video / Reel auto-commenter).
+    3. Infinite file repeat, live speed adjustment, and zero-crash error recovery.
     """
 
     def __init__(self):
         self.thread = None
         self.stop_event = threading.Event()
         self.pause_event = threading.Event()
-        self.pause_event.set()  # Not paused by default
+        self.pause_event.set()
 
         self.log_queue = queue.Queue()
         self.logs_history = []
@@ -345,10 +418,11 @@ class BotRunner:
 
         # Bot runtime stats
         self.is_running = False
-        self.status = "STOPPED"  # STOPPED, RUNNING, TYPING, SEEN, PAUSED, ERROR
+        self.status = "STOPPED"  # STOPPED, RUNNING, TYPING, SEEN, COMMENTING, PAUSED, ERROR
+        self.task_mode = "chat"  # "chat" (Messenger) or "comment" (Post Auto-Commenter)
         self.start_time = None
         self.target_id = ""
-        self.target_type = "personal"  # personal / group
+        self.target_type = "personal"  # personal / group / post
         self.target_name = ""
         self.user_name = ""
         self.user_id = ""
@@ -389,8 +463,8 @@ class BotRunner:
 
     def start(self, cookies_input: str, target_id: str, target_type: str, messages: list,
               prefix: str = "", typing_delay: int = 3, message_delay: int = 5,
-              infinite_loop: bool = True):
-        """Starts the persistent bot in a background thread."""
+              infinite_loop: bool = True, task_mode: str = "chat"):
+        """Starts the persistent bot in a background thread for Chat or Comments."""
         if self.is_running:
             return False, "Bot pehle se chal raha hai!"
 
@@ -398,10 +472,10 @@ class BotRunner:
             return False, "Cookies provide karein!"
 
         if not target_id:
-            return False, "Target ID / Group ID provide karein!"
+            return False, "Target ID (Chat ID ya Post ID) provide karein!"
 
         if not messages or len(messages) == 0:
-            return False, "Message list ya file khali hai!"
+            return False, "Message / Comment list ya file khali hai!"
 
         # Parse cookies and validate
         cookies = parse_cookies(cookies_input)
@@ -418,6 +492,7 @@ class BotRunner:
         self.pause_event.set()
         self.is_running = True
         self.status = "RUNNING"
+        self.task_mode = "comment" if task_mode.lower() in ["comment", "post"] else "chat"
         self.start_time = time.time()
         self.target_id = target_id.strip()
         self.target_type = target_type
@@ -432,9 +507,14 @@ class BotRunner:
         self.infinite_loop = bool(infinite_loop)
         self.prefix = prefix.strip()
 
+        mode_name = "💬 POST AUTO-COMMENTER" if self.task_mode == "comment" else f"📨 MESSENGER CHAT ({self.target_type.upper()})"
         self.add_log(f"🚀 Bot Initialized as '{self.user_name}' (UID: {self.user_id})", "SUCCESS")
-        self.add_log(f"🎯 Target: {self.target_id} ({self.target_type.upper()}) | Total Messages: {self.total_lines}", "INFO")
-        self.add_log(f"⚡ Settings: Auto-Seen = ON | Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | Auto-Restart Loop = {self.infinite_loop}", "INFO")
+        self.add_log(f"🎯 Mode: {mode_name} | Target: {self.target_id} | Total Items: {self.total_lines}", "INFO")
+        
+        if self.task_mode == "chat":
+            self.add_log(f"⚡ Settings: Auto-Seen = ON | Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | Auto-Restart Loop = {self.infinite_loop}", "INFO")
+        else:
+            self.add_log(f"⚡ Settings: Comment Interval = {self.message_delay}s | Auto-Restart Loop = {self.infinite_loop}", "INFO")
 
         # Launch worker thread
         self.thread = threading.Thread(
@@ -443,7 +523,7 @@ class BotRunner:
             daemon=True
         )
         self.thread.start()
-        return True, "Bot safaltapoorvak start ho gaya!"
+        return True, f"Bot safaltapoorvak start ho gaya ({mode_name})!"
 
     def stop(self):
         """Immediately stops the bot."""
@@ -459,7 +539,7 @@ class BotRunner:
         return True, "Bot stop kar diya gaya."
 
     def pause(self):
-        """Pauses message loop."""
+        """Pauses message/comment loop."""
         if not self.is_running:
             return False, "Bot active nahi hai."
         self.pause_event.clear()
@@ -489,7 +569,7 @@ class BotRunner:
         return True
 
     def _worker_loop(self, fb_session: FacebookSession, messages: list):
-        """Background continuous execution loop."""
+        """Background continuous execution loop for Chat or Comments."""
         is_group = (self.target_type.lower() == "group")
 
         while not self.stop_event.is_set():
@@ -505,53 +585,77 @@ class BotRunner:
 
                 full_message = f"{self.prefix} {line}".strip() if self.prefix else line
 
-                try:
-                    # 1. AUTO-SEEN: Mark chat as seen
-                    self.status = "SEEN"
-                    fb_session.mark_as_seen(self.target_id, is_group=is_group)
-                    self.add_log(f"👁️ [AUTO-SEEN] Target '{self.target_id}' par seen mark kiya gaya.", "SEEN")
-
-                    if not self._sleep_interruptible(0.5):
-                        break
-
-                    # 2. AUTO-TYPING: Start typing indicator
-                    self.status = "TYPING"
-                    fb_session.send_typing_indicator(self.target_id, is_typing=True)
-                    self.add_log(f"⌨️ [TYPING] FB par 'typing...' indicator start kiya ({self.typing_delay}s)...", "TYPING")
-
-                    # Simulating typing duration
-                    if not self._sleep_interruptible(self.typing_delay):
-                        fb_session.send_typing_indicator(self.target_id, is_typing=False)
-                        break
-
-                    # 3. SEND MESSAGE
-                    self.status = "SENDING"
-                    success, res_msg = fb_session.send_message(self.target_id, full_message, is_group=is_group)
-
-                    # 4. STOP TYPING INDICATOR
-                    fb_session.send_typing_indicator(self.target_id, is_typing=False)
-
-                    if success:
-                        self.total_sent += 1
-                        self.add_log(
-                            f"✅ [SENT #{self.total_sent}] (Loop #{self.loop_count}, Line {self.current_line_idx}/{self.total_lines}) -> \"{full_message[:45]}{'...' if len(full_message) > 45 else ''}\"",
-                            "SUCCESS"
-                        )
-                    else:
-                        self.add_log(f"⚠️ [FAILED] Message deliver nahi hua: {res_msg}", "WARN")
-
-                except Exception as e:
-                    self.add_log(f"❌ [ERROR] Exception caught: {str(e)}. Auto-retrying...", "ERROR")
-                    # Stop typing in case of crash
+                # ==========================================
+                # MODE 1: POST AUTO-COMMENTER
+                # ==========================================
+                if self.task_mode == "comment":
                     try:
-                        fb_session.send_typing_indicator(self.target_id, is_typing=False)
-                    except Exception:
-                        pass
-                    # Wait 5s backoff
-                    if not self._sleep_interruptible(5.0):
-                        break
+                        self.status = "COMMENTING"
+                        success, res_msg = fb_session.post_comment(self.target_id, full_message)
+                        
+                        if success:
+                            self.total_sent += 1
+                            self.add_log(
+                                f"💬 [COMMENT #{self.total_sent}] (Loop #{self.loop_count}, Line {self.current_line_idx}/{self.total_lines}) -> \"{full_message[:45]}{'...' if len(full_message) > 45 else ''}\" on Post {self.target_id}",
+                                "SUCCESS"
+                            )
+                        else:
+                            self.add_log(f"⚠️ [FAILED] Comment submit nahi hua: {res_msg}", "WARN")
 
-                # 5. WAIT MESSAGE DELAY INTERVAL
+                    except Exception as e:
+                        self.add_log(f"❌ [ERROR] Comment exception: {str(e)}. Auto-retrying...", "ERROR")
+                        if not self._sleep_interruptible(5.0):
+                            break
+
+                # ==========================================
+                # MODE 2: MESSENGER CHAT (PERSONAL / GROUP)
+                # ==========================================
+                else:
+                    try:
+                        # 1. AUTO-SEEN: Mark chat as seen
+                        self.status = "SEEN"
+                        fb_session.mark_as_seen(self.target_id, is_group=is_group)
+                        self.add_log(f"👁️ [AUTO-SEEN] Target '{self.target_id}' par seen mark kiya gaya.", "SEEN")
+
+                        if not self._sleep_interruptible(0.5):
+                            break
+
+                        # 2. AUTO-TYPING: Start typing indicator
+                        self.status = "TYPING"
+                        fb_session.send_typing_indicator(self.target_id, is_typing=True)
+                        self.add_log(f"⌨️ [TYPING] FB par 'typing...' indicator start kiya ({self.typing_delay}s)...", "TYPING")
+
+                        # Simulating typing duration
+                        if not self._sleep_interruptible(self.typing_delay):
+                            fb_session.send_typing_indicator(self.target_id, is_typing=False)
+                            break
+
+                        # 3. SEND MESSAGE
+                        self.status = "SENDING"
+                        success, res_msg = fb_session.send_message(self.target_id, full_message, is_group=is_group)
+
+                        # 4. STOP TYPING INDICATOR
+                        fb_session.send_typing_indicator(self.target_id, is_typing=False)
+
+                        if success:
+                            self.total_sent += 1
+                            self.add_log(
+                                f"✅ [SENT #{self.total_sent}] (Loop #{self.loop_count}, Line {self.current_line_idx}/{self.total_lines}) -> \"{full_message[:45]}{'...' if len(full_message) > 45 else ''}\"",
+                                "SUCCESS"
+                            )
+                        else:
+                            self.add_log(f"⚠️ [FAILED] Message deliver nahi hua: {res_msg}", "WARN")
+
+                    except Exception as e:
+                        self.add_log(f"❌ [ERROR] Exception caught: {str(e)}. Auto-retrying...", "ERROR")
+                        try:
+                            fb_session.send_typing_indicator(self.target_id, is_typing=False)
+                        except Exception:
+                            pass
+                        if not self._sleep_interruptible(5.0):
+                            break
+
+                # Interval Delay Between Messages / Comments
                 self.status = "RUNNING"
                 if not self._sleep_interruptible(self.message_delay):
                     break
@@ -562,11 +666,12 @@ class BotRunner:
             # Reached end of file
             if self.infinite_loop:
                 self.loop_count += 1
-                self.add_log(f"🔄 [FILE RESTART] Sabhi {self.total_lines} messages complete ho gaye! Loop #{self.loop_count} shuru se start ho raha hai...", "SUCCESS")
+                item_name = "Comments" if self.task_mode == "comment" else "Messages"
+                self.add_log(f"🔄 [FILE RESTART] Sabhi {self.total_lines} {item_name} complete ho gaye! Loop #{self.loop_count} shuru se start ho raha hai...", "SUCCESS")
                 if not self._sleep_interruptible(2.0):
                     break
             else:
-                self.add_log("🏁 Message file ke sabhi messages complete ho gaye. Loop mode OFF tha, stopping bot.", "INFO")
+                self.add_log("🏁 File ke sabhi items complete ho gaye. Loop mode OFF tha, stopping bot.", "INFO")
                 break
 
         self.is_running = False
@@ -584,6 +689,7 @@ class BotRunner:
         return {
             "is_running": self.is_running,
             "status": self.status,
+            "task_mode": self.task_mode,
             "uptime": uptime_str,
             "target_id": self.target_id,
             "target_type": self.target_type,

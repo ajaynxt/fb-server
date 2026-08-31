@@ -40,6 +40,31 @@ document.addEventListener("DOMContentLoaded", () => {
     let isRunning = false;
     let eventSource = null;
 
+    const targetLabel = document.getElementById("targetLabel");
+    const targetHelper = document.getElementById("targetHelper");
+    const targetTypeSelector = document.getElementById("targetTypeSelector");
+    const targetIdInput = document.getElementById("targetId");
+
+    // --- Mode Switching (Chat vs Comment) ---
+    document.querySelectorAll("input[name='task_mode']").forEach(radio => {
+        radio.addEventListener("change", (e) => {
+            const mode = e.target.value;
+            if (mode === "comment") {
+                targetLabel.innerHTML = `<i class="fa-solid fa-comments"></i> Target Facebook Post ID (Photo / Video / Reel)`;
+                targetHelper.textContent = "Facebook Post ID (e.g. 1000123456789_987654321 ya numeric ID) daalein.";
+                targetIdInput.placeholder = "e.g. 1000123456789_987654321 ya 82736192847291";
+                if (targetTypeSelector) targetTypeSelector.style.display = "none";
+                showToast("Post Auto-Commenter Mode Selected", "info");
+            } else {
+                targetLabel.innerHTML = `<i class="fa-solid fa-bullseye"></i> Target Chat ID (Personal UID ya Group ID)`;
+                targetHelper.textContent = "Target User UID ya Group Convo Thread ID daalein.";
+                targetIdInput.placeholder = "e.g. 10001234567890 ya 82736192847291";
+                if (targetTypeSelector) targetTypeSelector.style.display = "grid";
+                showToast("Messenger Chat Mode Selected", "info");
+            }
+        });
+    });
+
     // --- Tab Switching ---
     document.querySelectorAll(".tabs-nav").forEach(nav => {
         nav.querySelectorAll(".tab-btn").forEach(btn => {
@@ -377,6 +402,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (log.level === "SUCCESS") tagClass = "tag-success";
         else if (log.level === "TYPING") tagClass = "tag-typing";
         else if (log.level === "SEEN") tagClass = "tag-seen";
+        else if (log.level === "COMMENT") tagClass = "tag-comment";
         else if (log.level === "WARN") tagClass = "tag-warn";
         else if (log.level === "ERROR") tagClass = "tag-error";
 

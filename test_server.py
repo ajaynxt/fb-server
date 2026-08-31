@@ -71,5 +71,10 @@ class TestFBServer(unittest.TestCase):
         self.assertEqual(bot_runner.typing_delay, 2)
         self.assertEqual(bot_runner.message_delay, 8)
 
+    def test_task_mode_status(self):
+        status = bot_runner.get_status()
+        self.assertIn("task_mode", status)
+        self.assertIn("target_type", status)
+
 if __name__ == "__main__":
     unittest.main()

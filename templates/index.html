@@ -93,12 +93,37 @@
                 </div>
 
                 <form id="botConfigForm" class="config-form">
-                    <!-- Target Section -->
+                    <!-- Task Mode Switcher (Chat vs Comments) -->
                     <div class="form-group">
                         <label class="form-label">
+                            <i class="fa-solid fa-layer-group"></i> Select Automation Mode
+                        </label>
+                        <div class="mode-switch-grid">
+                            <label class="mode-pill">
+                                <input type="radio" name="task_mode" value="chat" checked id="modeChatRadio">
+                                <span>
+                                    <i class="fa-brands fa-facebook-messenger"></i>
+                                    <strong>Messenger Chat</strong>
+                                    <small>Personal Inbox & Groups (Auto-Seen + Typing)</small>
+                                </span>
+                            </label>
+                            <label class="mode-pill">
+                                <input type="radio" name="task_mode" value="comment" id="modeCommentRadio">
+                                <span>
+                                    <i class="fa-solid fa-comments"></i>
+                                    <strong>Post Auto-Commenter</strong>
+                                    <small>FB Posts / Photos / Reels (Infinite Loop)</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Target Section -->
+                    <div class="form-group" id="targetGroupChat">
+                        <label class="form-label" id="targetLabel">
                             <i class="fa-solid fa-bullseye"></i> Target Chat ID (Personal UID ya Group ID)
                         </label>
-                        <div class="target-type-selector">
+                        <div class="target-type-selector" id="targetTypeSelector">
                             <label class="radio-pill">
                                 <input type="radio" name="target_type" value="personal" checked>
                                 <span><i class="fa-solid fa-user"></i> Personal Inbox (UID)</span>
@@ -109,7 +134,7 @@
                             </label>
                         </div>
                         <input type="text" id="targetId" name="target_id" class="form-input" placeholder="e.g. 10001234567890 ya 82736192847291" required>
-                        <small class="helper-text">Target ka Numeric ID / Thread ID daalein.</small>
+                        <small class="helper-text" id="targetHelper">Target User UID ya Group Convo Thread ID daalein.</small>
                     </div>
 
                     <!-- Cookies Section -->
