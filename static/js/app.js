@@ -94,12 +94,14 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (e) {}
         }
         
-        if (authGatekeeperOverlay) authGatekeeperOverlay.style.display = "flex";
+        if (authGatekeeperOverlay) authGatekeeperOverlay.style.setProperty("display", "flex");
         if (userAuthPill) userAuthPill.style.display = "none";
     }
 
     function applyLoggedInUI(u) {
-        if (authGatekeeperOverlay) authGatekeeperOverlay.style.display = "none";
+        if (authGatekeeperOverlay) {
+            authGatekeeperOverlay.style.setProperty("display", "none", "important");
+        }
         if (userAuthPill) userAuthPill.style.display = "flex";
         if (userNameTxt) userNameTxt.textContent = u.displayName || "Admin";
         if (userEmailTxt) userEmailTxt.textContent = u.email || "gmail.com";
