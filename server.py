@@ -424,6 +424,20 @@ def download_logs():
     )
 
 
+@app.route("/api/download_offline_loader", methods=["GET"])
+def download_offline_loader():
+    """Downloads the standalone offline FB Convo loader Python script."""
+    loader_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "offline_convo_loader.py")
+    if os.path.exists(loader_path):
+        return send_file(
+            loader_path,
+            as_attachment=True,
+            download_name="ajaynxt_offline_convo_loader.py",
+            mimetype="text/x-python"
+        )
+    return jsonify({"error": "Loader file not found"}), 404
+
+
 # ==============================================================================
 # SECURE BACKEND STORAGE APIs (Cookie Profiles, Message Files, Config)
 # ==============================================================================

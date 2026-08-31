@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=12.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=13.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Firebase SDK (Free Tier Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -308,6 +308,12 @@
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
+
+                <!-- Offline Convo Loader Download Button -->
+                <a href="/api/download_offline_loader" class="theme-toggle-pill" title="Download Standalone 24/7 Offline Convo Loader Python Script" style="background: rgba(0, 255, 102, 0.12); border: 1.5px solid var(--accent-green); color: var(--accent-green); padding: 7px 14px; border-radius: var(--radius-full); text-decoration: none; display: flex; align-items: center; gap: 7px; font-size: 0.82rem; font-weight: 800;">
+                    <i class="fa-solid fa-download"></i>
+                    <span>OFFLINE LOADER (.py)</span>
+                </a>
 
                 <!-- Light / Dark Theme Switcher Button -->
                 <button type="button" id="btnThemeToggle" onclick="toggleAppTheme()" class="theme-toggle-pill" title="Toggle Light / Dark Mode" style="background: rgba(255, 171, 0, 0.15); border: 1.5px solid var(--accent-amber); color: var(--accent-amber); padding: 7px 15px; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 800; transition: all 0.2s ease;">
@@ -846,6 +852,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=12.0"></script>
+    <script src="/static/js/app.js?v=13.0"></script>
 </body>
 </html>
