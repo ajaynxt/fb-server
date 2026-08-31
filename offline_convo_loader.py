@@ -6,7 +6,8 @@
   Platform    : Termux (Android), Linux, Windows, macOS, VPS
   Features    :
     - 100% Offline / Local Execution (Zero Web Dependency)
-    - Full Cookie-Editor JSON / Cookie String / Token Parser
+    - Auto-reads cookie.json / cookie.txt / AppState file
+    - Multi-line Cookie JSON & Single-line Header Parser
     - Multi-Engine Convo Dispatch (mbasic, Mercury Web, Mobile Gateway)
     - Auto-Seen & Typing Simulation
     - Infinite Non-Stop Message Loop
@@ -26,7 +27,7 @@ try:
     import requests
 except ImportError:
     print("\n[!] 'requests' library missing. Installing automatically...")
-    os.system("pip install requests -q")
+    os.system("pip3 install requests -q || pip install requests -q")
     import requests
 
 # ANSI Color Palette
@@ -303,14 +304,31 @@ def load_messages(msg_source: str) -> list:
     return messages
 
 
+def get_clean_input(prompt: str) -> str:
+    """Reads input safely without getting corrupted by previous pastes."""
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    try:
+        return sys.stdin.readline().strip()
+    except Exception:
+        return ""
+
+
 def interactive_setup():
-    """Interactive CLI configuration setup."""
+    """Interactive CLI configuration setup with auto-cookie detection."""
     print_banner()
 
-    # Check for existing saved config
+    # 1. Check if cookie.json already exists in current folder
+    cookie_auto = ""
+    for candidate in ["cookie.json", "cookies.json", "cookie.txt", "cookies.txt"]:
+        if os.path.isfile(candidate):
+            cookie_auto = candidate
+            break
+
+    # 2. Check for existing saved config
     if os.path.isfile(CONFIG_FILE):
         print(f"{YELLOW}[?] Found saved configuration in '{CONFIG_FILE}'!{RESET}")
-        use_saved = input(f"{BOLD}{WHITE}Do you want to use saved config? (y/n) [Default: y]: {RESET}").strip().lower()
+        use_saved = get_clean_input(f"{BOLD}{WHITE}Do you want to use saved config? (y/n) [Default: y]: {RESET}").lower()
         if use_saved in ["", "y", "yes"]:
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -319,25 +337,46 @@ def interactive_setup():
             except Exception as e:
                 print(f"{RED}[!] Failed to read config: {e}{RESET}")
 
-    print(f"\n{BOLD}{CYAN}=== 🛠️ STEP 1: FACEBOOK COOKIES / TOKEN ==={RESET}")
-    print(f"{WHITE}Cookie-Editor se copy kiya hua JSON, raw string, ya file ka path daalein:{RESET}")
-    cookie_input = input(f"{GREEN}> Cookie Input / Path: {RESET}").strip()
+    print(f"\n{BOLD}{CYAN}=== 🛠️ STEP 1: FACEBOOK COOKIES ==={RESET}")
+    if cookie_auto:
+        print(f"{GREEN}[✓] Auto-detected '{cookie_auto}' in folder!{RESET}")
+        c_choice = get_clean_input(f"{WHITE}Use '{cookie_auto}'? (y/n) [Default: y]: {RESET}").lower()
+        if c_choice in ["", "y", "yes"]:
+            cookie_input = cookie_auto
+        else:
+            cookie_input = get_clean_input(f"{GREEN}> Cookie File Path (e.g. cookie.json): {RESET}")
+    else:
+        print(f"{WHITE}Cookie file ka naam (e.g. cookie.json) ya single-line cookie paste karein:{RESET}")
+        cookie_input = get_clean_input(f"{GREEN}> Cookie Input / File Path: {RESET}")
 
     print(f"\n{BOLD}{CYAN}=== 🎯 STEP 2: TARGET CONVO / INBOX ID ==={RESET}")
     print(f"{WHITE}Samne wale ka Target Profile UID, Chat ID ya Group Thread ID daalein:{RESET}")
-    target_id = input(f"{GREEN}> Target ID: {RESET}").strip()
+    target_id = get_clean_input(f"{GREEN}> Target ID: {RESET}")
 
     print(f"\n{BOLD}{CYAN}=== 💬 STEP 3: MESSAGE FILE / TEXT ==={RESET}")
-    print(f"{WHITE}Messages file (.txt) ka path daalein (e.g. messages.txt) ya direct text:{RESET}")
-    msg_file = input(f"{GREEN}> Message File / Text: {RESET}").strip()
+    # Auto-detect messages.txt if exists
+    msg_auto = "messages.txt" if os.path.isfile("messages.txt") else ""
+    if msg_auto:
+        print(f"{GREEN}[✓] Auto-detected 'messages.txt' in folder!{RESET}")
+        m_choice = get_clean_input(f"{WHITE}Use 'messages.txt'? (y/n) [Default: y]: {RESET}").lower()
+        if m_choice in ["", "y", "yes"]:
+            msg_file = "messages.txt"
+        else:
+            msg_file = get_clean_input(f"{GREEN}> Message File / Text: {RESET}")
+    else:
+        print(f"{WHITE}Messages file (.txt) ka path daalein (e.g. messages.txt) ya direct text:{RESET}")
+        msg_file = get_clean_input(f"{GREEN}> Message File / Text: {RESET}")
 
     print(f"\n{BOLD}{CYAN}=== 🏷️ STEP 4: HATERS / VIP PREFIX TAG ==={RESET}")
     print(f"{WHITE}Har message ke aage lagane wala Tag (e.g. [AJAY NXT] ya [VIP]):{RESET}")
-    prefix = input(f"{GREEN}> Prefix Tag (Optional, Press Enter to Skip): {RESET}").strip()
+    prefix = get_clean_input(f"{GREEN}> Prefix Tag (Optional, Press Enter to Skip): {RESET}")
 
     print(f"\n{BOLD}{CYAN}=== ⏱️ STEP 5: DELAY SPEED (SECONDS) ==={RESET}")
-    delay_str = input(f"{GREEN}> Delay between messages in seconds [Default: 5]: {RESET}").strip()
-    delay = float(delay_str) if delay_str else 5.0
+    delay_str = get_clean_input(f"{GREEN}> Delay between messages in seconds [Default: 5]: {RESET}")
+    try:
+        delay = float(delay_str) if delay_str else 5.0
+    except ValueError:
+        delay = 5.0
 
     cfg = {
         "cookies": cookie_input,
@@ -348,7 +387,7 @@ def interactive_setup():
     }
 
     # Save config
-    save_opt = input(f"\n{YELLOW}[?] Save this setup for 1-click launch next time? (y/n) [Default: y]: {RESET}").strip().lower()
+    save_opt = get_clean_input(f"\n{YELLOW}[?] Save this setup for 1-click launch next time? (y/n) [Default: y]: {RESET}").lower()
     if save_opt in ["", "y", "yes"]:
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
@@ -368,7 +407,7 @@ def main():
 
     cookies = parse_cookies_input(cfg["cookies"])
     if not cookies:
-        print(f"{RED}[❌] Invalid Cookie Format! Please provide Cookie JSON or valid string.{RESET}")
+        print(f"{RED}[❌] Invalid Cookie Format! Please provide Cookie JSON or valid file path.{RESET}")
         sys.exit(1)
 
     session = ConvoSession(cookies)
