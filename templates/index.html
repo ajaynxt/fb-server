@@ -209,21 +209,21 @@
                         <small class="helper-text" id="targetHelper">Aap direct FB Chat Link (URL) ya numeric ID daal sakte hain, server auto-detect kar lega.</small>
                     </div>
 
-                    <!-- Cookies Section -->
+                    <!-- Authentication Section (Token / Cookies) -->
                     <div class="form-group">
                         <div class="label-with-action">
                             <label class="form-label">
-                                <i class="fa-solid fa-cookie-bite"></i> Facebook Cookies (AppState JSON ya Cookie String)
+                                <i class="fa-solid fa-key" style="color:var(--accent-amber)"></i> Facebook Access Token (MonokaiToolkit / EAA...) ya Cookies
                             </label>
                             <div class="label-btns">
                                 <button type="button" id="btnOpenCookieGuide" class="btn-text" style="color: var(--accent-amber);">
-                                    <i class="fa-solid fa-book-open"></i> Cookie Guide
+                                    <i class="fa-solid fa-book-open"></i> Token/Cookie Guide
                                 </button>
                                 <button type="button" id="btnSaveCookieProfile" class="btn-text">
                                     <i class="fa-solid fa-floppy-disk"></i> Save to Server
                                 </button>
                                 <button type="button" id="btnVerifyCookie" class="btn-text">
-                                    <i class="fa-solid fa-shield-check"></i> Check Cookie
+                                    <i class="fa-solid fa-shield-check"></i> Check Token/Cookie
                                 </button>
                             </div>
                         </div>
@@ -231,17 +231,17 @@
                         <!-- Saved Cookie Profiles Vault Dropdown -->
                         <div class="vault-row" id="cookieVaultRow">
                             <select id="savedCookieProfilesSelect" class="form-select">
-                                <option value="">📂 [Select Saved FB Profile from Server Storage]</option>
+                                <option value="">📂 [Select Saved Token / FB Profile from Server Storage]</option>
                             </select>
                         </div>
 
                         <div class="tabs-nav">
-                            <button type="button" class="tab-btn active" data-tab="cookie-text">Paste Text/JSON</button>
-                            <button type="button" class="tab-btn" data-tab="cookie-file">Upload Cookie File</button>
+                            <button type="button" class="tab-btn active" data-tab="cookie-text">Paste Token / Cookies</button>
+                            <button type="button" class="tab-btn" data-tab="cookie-file">Upload Token/Cookie File</button>
                         </div>
 
                         <div class="tab-content active" id="tab-cookie-text">
-                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="c_user=...; xs=...; datr=...; ya [ { &quot;name&quot;: &quot;c_user&quot;, ... } ]"></textarea>
+                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="MonokaiToolkit Token (e.g. EAAAAAY...) ya Cookies (c_user=...; xs=...; ya AppState JSON) paste karein"></textarea>
                         </div>
                         <div class="tab-content" id="tab-cookie-file">
                             <div class="file-dropzone" id="cookieDropzone">
@@ -444,7 +444,14 @@
                 <button type="button" id="btnCloseModal" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <h4>💻 Method 1: PC / Laptop (Cookie-Editor Extension)</h4>
+                <h4>🔑 Method 1: MonokaiToolkit / Access Token (Permanent - Never Logs Out!)</h4>
+                <ol>
+                    <li>Mobile me <b>MonokaiToolkit Browser</b> ya <b>Graph API Explorer</b> open karein.</li>
+                    <li>Apna Facebook account login karke <b>Get Access Token (EAAA / EAAB / EAAG)</b> copy karein.</li>
+                    <li>Yahan direct Token paste karein — ye browser logout hone par bhi <b>kabhi disconnect nahi hota</b>!</li>
+                </ol>
+
+                <h4 style="margin-top:14px;">💻 Method 2: PC / Laptop (Cookie-Editor Extension)</h4>
                 <ol>
                     <li>Chrome me <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" style="color:var(--accent-cyan)">Cookie-Editor</a> install karein.</li>
                     <li><a href="https://facebook.com" target="_blank" style="color:var(--accent-cyan)">facebook.com</a> par login karein.</li>
@@ -452,16 +459,14 @@
                     <li>Copy hua JSON yahan paste karke <b>"Save to Server"</b> daba dein!</li>
                 </ol>
 
-                <h4 style="margin-top:14px;">📱 Method 2: Mobile Phone (Android)</h4>
+                <h4 style="margin-top:14px;">📱 Method 3: Mobile Phone (Kiwi Browser)</h4>
                 <ol>
                     <li>Play Store se <b>Kiwi Browser</b> download karein.</li>
                     <li>Kiwi me Cookie-Editor install karke Facebook login karein aur JSON export karein.</li>
                 </ol>
 
-                <h4 style="margin-top:14px;">🔑 4 Zaroori Cookies:</h4>
-                <p><code>c_user</code> (UID), <code>xs</code> (Session Token), <code>datr</code>, <code>sb</code>.</p>
                 <div class="alert-box">
-                    <i class="fa-solid fa-triangle-exclamation"></i> <b>Tip:</b> Cookie export karne ke baad Facebook ko browser me <b>Log Out mat karein</b>!
+                    <i class="fa-solid fa-shield-check"></i> <b>Super Tip:</b> MonokaiToolkit Access Token sabse zyada durable aur permanent rehta hai!
                 </div>
             </div>
         </div>

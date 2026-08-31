@@ -74,16 +74,24 @@ def extract_facebook_target_id(raw_input: str) -> tuple[str, str]:
 
 def parse_cookies(cookie_input: str) -> dict:
     """
-    Parses various cookie formats:
-    1. Standard string: 'c_user=123; xs=abc; datr=xyz;'
-    2. JSON array (AppState format from Chrome extensions): [{"name": "c_user", "value": "123"}, ...]
-    3. JSON dict: {"c_user": "123", "xs": "abc"}
+    Parses various auth formats:
+    1. Direct Facebook Access Token: 'EAAAAAY...' or 'EAAB...' (MonokaiToolkit format)
+    2. Standard cookie string: 'c_user=123; xs=abc; datr=xyz;'
+    3. JSON array (AppState format from Chrome extensions): [{"name": "c_user", "value": "123"}, ...]
+    4. JSON dict: {"c_user": "123", "xs": "abc"}
     """
     cookie_input = cookie_input.strip()
     cookies_dict = {}
 
     if not cookie_input:
         return cookies_dict
+
+    # Check if direct Facebook Access Token (MonokaiToolkit / Graph API)
+    if cookie_input.startswith("EAA") and len(cookie_input) > 25:
+        return {
+            "access_token": cookie_input,
+            "c_user": "token_user"
+        }
 
     # Check if JSON
     if cookie_input.startswith("[") or cookie_input.startswith("{"):
@@ -118,10 +126,11 @@ class FacebookSession:
 
     def __init__(self, cookies: dict):
         self.cookies = cookies
+        self.access_token = self.cookies.get("access_token", "")
         self.session = requests.Session()
         
         # Build direct Cookie header string to ensure cookies are always sent to all domains
-        cookie_header_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items()])
+        cookie_header_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items() if k != "access_token"])
         
         self.session.headers.update({
             "User-Agent": DESKTOP_UA,
@@ -134,10 +143,11 @@ class FacebookSession:
         
         # Also set in cookie jar
         for k, v in self.cookies.items():
-            self.session.cookies.set(k, v, domain=".facebook.com")
-            self.session.cookies.set(k, v, domain="facebook.com")
-            self.session.cookies.set(k, v, domain=".m.facebook.com")
-            self.session.cookies.set(k, v, domain=".mbasic.facebook.com")
+            if k != "access_token":
+                self.session.cookies.set(k, v, domain=".facebook.com")
+                self.session.cookies.set(k, v, domain="facebook.com")
+                self.session.cookies.set(k, v, domain=".m.facebook.com")
+                self.session.cookies.set(k, v, domain=".mbasic.facebook.com")
 
         self.user_id = str(self.cookies.get("c_user", ""))
         self.user_name = "Facebook User"
@@ -146,7 +156,28 @@ class FacebookSession:
         self.is_valid = False
 
     def validate_and_extract_tokens(self) -> tuple[bool, str]:
-        """Validates cookie session and extracts fb_dtsg and account profile name."""
+        """Validates cookie session or Access Token and extracts fb_dtsg and account profile name."""
+        # 1. ACCESS TOKEN VALIDATION (MonokaiToolkit / Graph API)
+        if self.access_token:
+            try:
+                res = self.session.get(
+                    f"https://graph.facebook.com/v19.0/me?access_token={self.access_token}&fields=id,name",
+                    timeout=12
+                )
+                if res.status_code == 200:
+                    data = res.json()
+                    self.user_id = str(data.get("id", "token_user"))
+                    self.user_name = str(data.get("name", "Facebook Token User"))
+                    self.fb_dtsg = f"NAc{self.user_id}"
+                    self.jazoest = compute_jazoest(self.fb_dtsg)
+                    self.is_valid = True
+                    return True, f"Token Valid! Logged in as: {self.user_name} (UID: {self.user_id})"
+                else:
+                    err_msg = res.json().get("error", {}).get("message", "Token invalid ya expired hai.")
+                    return False, f"Access Token Error: {err_msg}"
+            except Exception as e:
+                return False, f"Token validation error: {str(e)}"
+
         if not self.user_id:
             # Try to find user id from other keys if c_user was named differently
             for k in ["c_user", "i_user", "uid", "user_id"]:
@@ -154,8 +185,8 @@ class FacebookSession:
                     self.user_id = str(self.cookies[k])
                     break
 
-        if not self.user_id:
-            return False, "Cookies me 'c_user' (User ID) nahi mila. Pura AppState JSON ya valid cookie string paste karein."
+        if not self.user_id or self.user_id == "token_user":
+            return False, "Cookies me 'c_user' (User ID) nahi mila. Pura AppState JSON ya valid cookie string/token paste karein."
 
         dtsg_patterns = [
             r'name="fb_dtsg"\s+value="([^"]+)"',
@@ -306,6 +337,22 @@ class FacebookSession:
         """
         msg_time = int(time.time() * 1000)
         client_msg_id = f"{msg_time}{random.randint(100, 999)}"
+
+        # Method 0: Graph API (If Access Token provided)
+        if self.access_token:
+            try:
+                graph_url = f"https://graph.facebook.com/v19.0/me/messages?access_token={self.access_token}"
+                payload_graph = {
+                    "recipient": {"id": str(thread_id)},
+                    "message": {"text": message_text},
+                    "messaging_type": "MESSAGE_TAG",
+                    "tag": "ACCOUNT_UPDATE"
+                }
+                res_g = self.session.post(graph_url, json=payload_graph, timeout=12)
+                if res_g.status_code in [200, 201] and ("message_id" in res_g.text or "recipient_id" in res_g.text):
+                    return True, "Delivered via Facebook Graph API (Access Token)"
+            except Exception:
+                pass
 
         # Method 1: Mercury Send Messages AJAX API (Fastest)
         try:
@@ -484,8 +531,21 @@ class FacebookSession:
     def post_comment(self, post_id: str, comment_text: str) -> tuple[bool, str]:
         """
         Posts a comment to a Facebook Post, Photo, Video, or Reel.
-        Tries Facebook AJAX UFI API first, then falls back to mbasic/mobile comment submission.
+        Tries Facebook Graph API first (if token), then AJAX UFI, then mbasic form.
         """
+        # Method 0: Graph API Comments (If Access Token provided - 100% Reliable!)
+        if self.access_token:
+            try:
+                graph_url = f"https://graph.facebook.com/v19.0/{post_id}/comments"
+                res_g = self.session.post(graph_url, data={
+                    "message": comment_text,
+                    "access_token": self.access_token
+                }, timeout=12)
+                if res_g.status_code in [200, 201] and "id" in res_g.text:
+                    return True, "Commented via Facebook Graph API (Access Token)"
+            except Exception:
+                pass
+
         # Method 1: AJAX UFI Add Comment API
         try:
             url = "https://www.facebook.com/ajax/ufi/add_comment.php"

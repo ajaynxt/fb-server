@@ -30,6 +30,12 @@ class TestFBServer(unittest.TestCase):
         self.assertEqual(parsed.get("c_user"), "1000998877")
         self.assertEqual(parsed.get("xs"), "secret_token_123")
 
+    def test_parse_access_token(self):
+        token = "EAAAAAY1234567890abcdefghijklmnopqrstuvwxyz_secret_token"
+        parsed = parse_cookies(token)
+        self.assertEqual(parsed.get("access_token"), token)
+        self.assertIn("c_user", parsed)
+
     def test_compute_jazoest(self):
         dtsg = "NA"
         jazoest = compute_jazoest(dtsg)
