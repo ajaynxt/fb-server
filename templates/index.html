@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FB Messenger Non-Stop 24/7 Auto-Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Background Ambient Glow -->
+    <div class="glow-bg glow-1"></div>
+    <div class="glow-bg glow-2"></div>
+
+    <div class="app-container">
+        <!-- Top Navbar -->
+        <header class="navbar">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <i class="fa-brands fa-facebook-messenger"></i>
+                </div>
+                <div>
+                    <h1 class="logo-title">FB Non-Stop Server <span class="badge-tag">24/7 ACTIVE</span></h1>
+                    <p class="logo-subtitle">Auto-Seen • Real-Time Typing • Infinite File Loop • Crash Proof</p>
+                </div>
+            </div>
+            
+            <div class="nav-controls">
+                <div class="status-pill" id="globalStatusPill">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="globalStatusText">STOPPED</span>
+                </div>
+                <div class="uptime-box">
+                    <i class="fa-solid fa-clock"></i> Uptime: <span id="uptimeDisplay">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Live Stats Overview Cards -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-cyan"><i class="fa-solid fa-paper-plane"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Messages Sent</span>
+                    <span class="stat-value" id="statSent">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-purple"><i class="fa-solid fa-arrows-rotate"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Loop Rounds</span>
+                    <span class="stat-value" id="statLoop">Round #0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-amber"><i class="fa-solid fa-list-ol"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">File Progress</span>
+                    <span class="stat-value" id="statProgress">0 / 0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green"><i class="fa-solid fa-user-check"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Active FB Account</span>
+                    <span class="stat-value user-name-truncate" id="statAccount">Not Connected</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace -->
+        <main class="main-layout">
+            <!-- Left Side: Configuration & Controls -->
+            <section class="card config-card">
+                <div class="card-header">
+                    <div class="header-title">
+                        <i class="fa-solid fa-sliders"></i>
+                        <h2>Bot Configuration & Controls</h2>
+                    </div>
+                    <!-- Big Quick Action Buttons (PythonAnywhere Style) -->
+                    <div class="top-actions">
+                        <button id="btnStart" class="btn btn-primary">
+                            <i class="fa-solid fa-play"></i> START BOT
+                        </button>
+                        <button id="btnStop" class="btn btn-danger" disabled>
+                            <i class="fa-solid fa-stop"></i> STOP BOT
+                        </button>
+                    </div>
+                </div>
+
+                <form id="botConfigForm" class="config-form">
+                    <!-- Target Section -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-bullseye"></i> Target Chat ID (Personal UID ya Group ID)
+                        </label>
+                        <div class="target-type-selector">
+                            <label class="radio-pill">
+                                <input type="radio" name="target_type" value="personal" checked>
+                                <span><i class="fa-solid fa-user"></i> Personal Inbox (UID)</span>
+                            </label>
+                            <label class="radio-pill">
+                                <input type="radio" name="target_type" value="group">
+                                <span><i class="fa-solid fa-users"></i> Group Chat (Thread ID)</span>
+                            </label>
+                        </div>
+                        <input type="text" id="targetId" name="target_id" class="form-input" placeholder="e.g. 10001234567890 ya 82736192847291" required>
+                        <small class="helper-text">Target ka Numeric ID / Thread ID daalein.</small>
+                    </div>
+
+                    <!-- Cookies Section -->
+                    <div class="form-group">
+                        <div class="label-with-action">
+                            <label class="form-label">
+                                <i class="fa-solid fa-cookie-bite"></i> Facebook Cookies (AppState JSON ya Cookie String)
+                            </label>
+                            <button type="button" id="btnVerifyCookie" class="btn-text">
+                                <i class="fa-solid fa-shield-check"></i> Check Cookie
+                            </button>
+                        </div>
+
+                        <div class="tabs-nav">
+                            <button type="button" class="tab-btn active" data-tab="cookie-text">Paste Text/JSON</button>
+                            <button type="button" class="tab-btn" data-tab="cookie-file">Upload Cookie File</button>
+                        </div>
+
+                        <div class="tab-content active" id="tab-cookie-text">
+                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="c_user=...; xs=...; datr=...; ya [ { &quot;name&quot;: &quot;c_user&quot;, ... } ]"></textarea>
+                        </div>
+                        <div class="tab-content" id="tab-cookie-file">
+                            <div class="file-dropzone" id="cookieDropzone">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Click ya Drag karke Cookie file (.txt / .json) select karein</span>
+                                <input type="file" id="cookieFileInput" name="cookie_file" accept=".txt,.json">
+                            </div>
+                        </div>
+                        <div id="cookieValidationResult" class="cookie-status-msg" style="display: none;"></div>
+                    </div>
+
+                    <!-- Messages Section -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-message-lines"></i> Message Text File (.txt) ya Direct Messages
+                        </label>
+                        
+                        <div class="tabs-nav">
+                            <button type="button" class="tab-btn active" data-tab="msg-file">Upload .txt File</button>
+                            <button type="button" class="tab-btn" data-tab="msg-text">Direct Text Area</button>
+                        </div>
+
+                        <div class="tab-content active" id="tab-msg-file">
+                            <div class="file-dropzone" id="msgDropzone">
+                                <i class="fa-solid fa-file-lines"></i>
+                                <span id="msgFileName">Click ya Drag karke Messages (.txt) file select karein</span>
+                                <input type="file" id="messagesFileInput" name="messages_file" accept=".txt">
+                            </div>
+                        </div>
+                        <div class="tab-content" id="tab-msg-text">
+                            <textarea id="messagesInput" name="messages" class="form-textarea" rows="4" placeholder="Ek ek line me message likhein...&#10;Hello Bhai!&#10;Kese ho aap?&#10;Auto message running!"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Message Prefix / Hater Name -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-tag"></i> Message Prefix / Name Tag (Optional)
+                        </label>
+                        <input type="text" id="prefixInput" name="prefix" class="form-input" placeholder="e.g. [BOSS] ya [VIP] ya Target Name">
+                    </div>
+
+                    <!-- SPEED & DELAY CONTROLS (Live Adjustable!) -->
+                    <div class="speed-control-box">
+                        <div class="speed-header">
+                            <label class="form-label">
+                                <i class="fa-solid fa-gauge-high"></i> Speed & Delay Controls
+                            </label>
+                            <button type="button" id="btnApplyLiveSpeed" class="btn btn-sm btn-outline">
+                                <i class="fa-solid fa-bolt"></i> Live Speed Apply
+                            </button>
+                        </div>
+
+                        <!-- Speed Presets -->
+                        <div class="presets-row">
+                            <button type="button" class="preset-btn" data-type="ultra">⚡ Ultra Fast (1s/2s)</button>
+                            <button type="button" class="preset-btn active" data-type="fast">🚀 Fast (2s/5s)</button>
+                            <button type="button" class="preset-btn" data-type="normal">⚖️ Normal (3s/10s)</button>
+                            <button type="button" class="preset-btn" data-type="safe">🛡️ Safe (5s/20s)</button>
+                        </div>
+
+                        <div class="sliders-grid">
+                            <div class="slider-item">
+                                <div class="slider-label">
+                                    <span><i class="fa-solid fa-keyboard"></i> Auto-Typing Duration</span>
+                                    <span class="slider-val" id="typingVal">2s</span>
+                                </div>
+                                <input type="range" id="typingDelaySlider" name="typing_delay" min="1" max="30" value="2" class="range-slider">
+                                <small>Message send se pehle FB par 'typing...' show hone ka time</small>
+                            </div>
+
+                            <div class="slider-item">
+                                <div class="slider-label">
+                                    <span><i class="fa-solid fa-stopwatch"></i> Message Interval (Speed)</span>
+                                    <span class="slider-val" id="intervalVal">5s</span>
+                                </div>
+                                <input type="range" id="messageDelaySlider" name="message_delay" min="1" max="120" value="5" class="range-slider">
+                                <small>Do messages ke beech me wait time (seconds)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Infinite Loop Checkbox -->
+                    <div class="checkbox-row">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="infiniteLoopCheck" name="infinite_loop" checked>
+                            <span class="switch-slider"></span>
+                        </label>
+                        <div class="checkbox-info">
+                            <span class="checkbox-title">🔄 Infinite File Loop (File khatam hote hi shuru se restart)</span>
+                            <span class="checkbox-desc">File ke aakhri message ke baad automatically line 1 se dubara chalna shuru ho jayega non-stop.</span>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Control Buttons (Pause/Resume) -->
+                    <div class="bottom-action-buttons">
+                        <button type="button" id="btnPause" class="btn btn-secondary" disabled>
+                            <i class="fa-solid fa-pause"></i> PAUSE
+                        </button>
+                        <button type="button" id="btnResume" class="btn btn-secondary" style="display:none;">
+                            <i class="fa-solid fa-play"></i> RESUME
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Right Side: Live Terminal Console -->
+            <section class="card terminal-card">
+                <div class="card-header">
+                    <div class="header-title">
+                        <i class="fa-solid fa-terminal"></i>
+                        <h2>Live Console & Real-time Logs</h2>
+                    </div>
+                    <div class="terminal-actions">
+                        <label class="autoscroll-toggle">
+                            <input type="checkbox" id="autoScrollCheck" checked>
+                            <span>Auto-Scroll</span>
+                        </label>
+                        <button id="btnClearLogs" class="btn-icon" title="Clear Console">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <a id="btnDownloadLogs" href="/api/download_logs" class="btn-icon" title="Download Logs">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Terminal Display -->
+                <div class="terminal-wrapper" id="terminalContainer">
+                    <div class="terminal-body" id="terminalLogs">
+                        <div class="log-row info">
+                            <span class="log-time">[SYSTEM]</span>
+                            <span class="log-tag tag-info">INFO</span>
+                            <span class="log-text">FB Messenger Server Ready. Waiting for configuration...</span>
+                        </div>
+                        <div class="log-row info">
+                            <span class="log-time">[SYSTEM]</span>
+                            <span class="log-tag tag-info">INFO</span>
+                            <span class="log-text">Auto-Seen & Real-time Auto-Typing engine initialized.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terminal Footer Status Bar -->
+                <div class="terminal-footer">
+                    <div class="status-indicator-group">
+                        <span class="feat-badge"><i class="fa-solid fa-eye"></i> Auto-Seen: <strong>ACTIVE</strong></span>
+                        <span class="feat-badge"><i class="fa-solid fa-keyboard"></i> Auto-Typing: <strong>ACTIVE</strong></span>
+                        <span class="feat-badge"><i class="fa-solid fa-shield-halved"></i> 24/7 Watchdog: <strong>ACTIVE</strong></span>
+                    </div>
+                    <div class="live-activity" id="activityPulse">
+                        <span class="pulse-ring"></span>
+                        <span class="pulse-label">Server Live</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

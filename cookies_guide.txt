@@ -1,0 +1,30 @@
+========================================================================
+             FACEBOOK COOKIES EXTRACT KARNE KA ASAN TAREEKA
+========================================================================
+
+Aap 2 methods se FB Cookies / AppState extract kar sakte hain:
+
+METHOD 1: Chrome Extension "Cookie-Editor" (Sabse Asan)
+------------------------------------------------------------------------
+1. Chrome browser me "Cookie-Editor" extension install karein:
+   Link: https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm
+2. https://www.facebook.com par login karein.
+3. Extension icon par click karein.
+4. Niche "Export" button par click karein aur "Export as JSON" ya "Export as Header Value" select karein.
+5. Copy hua text bot dashboard me paste karein ya file me save karke upload karein.
+
+
+METHOD 2: Chrome DevTools (Inspect Element)
+------------------------------------------------------------------------
+1. Facebook open karke login karein.
+2. Keyboard par F12 (ya Right Click -> Inspect) press karein.
+3. "Application" tab par jayein -> Left side me "Cookies" -> "https://www.facebook.com" select karein.
+4. Wahan se `c_user` aur `xs` cookie values copy karein.
+   Format:
+   c_user=10001234567890; xs=12345678%3Aabcde%3A2%3A1700000000; datr=xyz;
+
+
+METHOD 3: "c3c-fbstate" Extension (AppState Format)
+------------------------------------------------------------------------
+1. c3c fbstate extension se ek click me full appstate JSON export hota hai.
+2. Is JSON file ko direct bot ke dashboard me upload karein.
