@@ -144,20 +144,21 @@
                     <!-- Target Section -->
                     <div class="form-group" id="targetGroupChat">
                         <label class="form-label" id="targetLabel">
-                            <i class="fa-solid fa-bullseye"></i> Target Chat ID (Personal UID ya Group ID)
+                            <i class="fa-solid fa-bullseye"></i> Target Chat (Direct ID ya Direct FB Chat/Group Link)
                         </label>
                         <div class="target-type-selector" id="targetTypeSelector">
                             <label class="radio-pill">
-                                <input type="radio" name="target_type" value="personal" checked>
+                                <input type="radio" name="target_type" value="personal" checked id="radioPersonal">
                                 <span><i class="fa-solid fa-user"></i> Personal Inbox (UID)</span>
                             </label>
                             <label class="radio-pill">
-                                <input type="radio" name="target_type" value="group">
+                                <input type="radio" name="target_type" value="group" id="radioGroup">
                                 <span><i class="fa-solid fa-users"></i> Group Chat (Thread ID)</span>
                             </label>
                         </div>
-                        <input type="text" id="targetId" name="target_id" class="form-input" placeholder="e.g. 10001234567890 ya 82736192847291" required>
-                        <small class="helper-text" id="targetHelper">Target User UID ya Group Convo Thread ID daalein.</small>
+                        <input type="text" id="targetId" name="target_id" class="form-input" placeholder="e.g. 10001234567890 ya https://www.facebook.com/messages/t/82736192847291" required>
+                        <div id="targetSyncBadge" class="sync-badge" style="display:none;"><i class="fa-solid fa-link"></i> <span id="targetSyncText">Link Synced!</span></div>
+                        <small class="helper-text" id="targetHelper">Aap direct FB Chat Link (URL) ya numeric ID daal sakte hain, server auto-detect kar lega.</small>
                     </div>
 
                     <!-- Cookies Section -->
@@ -167,6 +168,9 @@
                                 <i class="fa-solid fa-cookie-bite"></i> Facebook Cookies (AppState JSON ya Cookie String)
                             </label>
                             <div class="label-btns">
+                                <button type="button" id="btnOpenCookieGuide" class="btn-text" style="color: var(--accent-amber);">
+                                    <i class="fa-solid fa-book-open"></i> Cookie Guide
+                                </button>
                                 <button type="button" id="btnSaveCookieProfile" class="btn-text">
                                     <i class="fa-solid fa-floppy-disk"></i> Save to Server
                                 </button>
@@ -363,6 +367,37 @@
 
     <!-- Notification Toast -->
     <div id="toast" class="toast"></div>
+
+    <!-- Cookie Guide Modal -->
+    <div id="cookieGuideModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cookie-bite" style="color:var(--accent-amber)"></i> 100% Working Facebook Cookie Guide</h3>
+                <button type="button" id="btnCloseModal" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>💻 Method 1: PC / Laptop (Cookie-Editor Extension)</h4>
+                <ol>
+                    <li>Chrome me <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" style="color:var(--accent-cyan)">Cookie-Editor</a> install karein.</li>
+                    <li><a href="https://facebook.com" target="_blank" style="color:var(--accent-cyan)">facebook.com</a> par login karein.</li>
+                    <li>Extension open karke <b>Export -> Export as JSON</b> karein.</li>
+                    <li>Copy hua JSON yahan paste karke <b>"Save to Server"</b> daba dein!</li>
+                </ol>
+
+                <h4 style="margin-top:14px;">📱 Method 2: Mobile Phone (Android)</h4>
+                <ol>
+                    <li>Play Store se <b>Kiwi Browser</b> download karein.</li>
+                    <li>Kiwi me Cookie-Editor install karke Facebook login karein aur JSON export karein.</li>
+                </ol>
+
+                <h4 style="margin-top:14px;">🔑 4 Zaroori Cookies:</h4>
+                <p><code>c_user</code> (UID), <code>xs</code> (Session Token), <code>datr</code>, <code>sb</code>.</p>
+                <div class="alert-box">
+                    <i class="fa-solid fa-triangle-exclamation"></i> <b>Tip:</b> Cookie export karne ke baad Facebook ko browser me <b>Log Out mat karein</b>!
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/js/app.js"></script>
 </body>

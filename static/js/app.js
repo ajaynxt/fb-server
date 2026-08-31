@@ -72,6 +72,95 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // --- Target Link Auto-Sync Parser ---
+    const targetSyncBadge = document.getElementById("targetSyncBadge");
+    const targetSyncText = document.getElementById("targetSyncText");
+
+    function parseTargetLink(inputVal) {
+        if (!inputVal) {
+            if (targetSyncBadge) targetSyncBadge.style.display = "none";
+            return;
+        }
+        inputVal = inputVal.trim();
+        let extractedId = null;
+        let detectedType = null;
+
+        // Check tid= parameter
+        const tidMatch = inputVal.match(/tid=(?:cid\.(g|c)\.)?(\d+)/);
+        if (tidMatch) {
+            extractedId = tidMatch[2];
+            detectedType = tidMatch[1] === "g" ? "group" : "personal";
+        } else {
+            const msgMatch = inputVal.match(/\/messages\/t\/(\d+)/);
+            if (msgMatch) {
+                extractedId = msgMatch[1];
+                detectedType = "personal";
+            } else {
+                const profMatch = inputVal.match(/profile\.php\?id=(\d+)/);
+                if (profMatch) {
+                    extractedId = profMatch[1];
+                    detectedType = "personal";
+                } else {
+                    const postMatch = inputVal.match(/\/(?:posts|videos|reel|photos?|story\.php\?story_fbid=)\/([0-9_]+)/);
+                    if (postMatch) {
+                        extractedId = postMatch[1];
+                        detectedType = "post";
+                    }
+                }
+            }
+        }
+
+        if (extractedId) {
+            targetIdInput.value = extractedId;
+            if (detectedType === "group") {
+                const radioG = document.querySelector("input[name='target_type'][value='group']");
+                if (radioG) radioG.checked = true;
+            } else if (detectedType === "personal") {
+                const radioP = document.querySelector("input[name='target_type'][value='personal']");
+                if (radioP) radioP.checked = true;
+            }
+            if (targetSyncBadge) {
+                targetSyncBadge.style.display = "inline-flex";
+                targetSyncText.textContent = `Link Synced: ID ${extractedId} (${detectedType})`;
+            }
+            showToast(`Auto-Synced Target ID: ${extractedId}`, "success");
+        }
+    }
+
+    if (targetIdInput) {
+        targetIdInput.addEventListener("input", (e) => {
+            if (e.target.value.includes("http") || e.target.value.includes("facebook.com") || e.target.value.includes("tid=")) {
+                parseTargetLink(e.target.value);
+            }
+        });
+        targetIdInput.addEventListener("paste", () => {
+            setTimeout(() => parseTargetLink(targetIdInput.value), 50);
+        });
+    }
+
+    // --- Cookie Guide Modal ---
+    const btnOpenCookieGuide = document.getElementById("btnOpenCookieGuide");
+    const cookieGuideModal = document.getElementById("cookieGuideModal");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+
+    if (btnOpenCookieGuide && cookieGuideModal) {
+        btnOpenCookieGuide.addEventListener("click", () => {
+            cookieGuideModal.style.display = "flex";
+        });
+    }
+    if (btnCloseModal && cookieGuideModal) {
+        btnCloseModal.addEventListener("click", () => {
+            cookieGuideModal.style.display = "none";
+        });
+    }
+    if (cookieGuideModal) {
+        cookieGuideModal.addEventListener("click", (e) => {
+            if (e.target === cookieGuideModal) {
+                cookieGuideModal.style.display = "none";
+            }
+        });
+    }
+
     // --- Tab Switching ---
     document.querySelectorAll(".tabs-nav").forEach(nav => {
         nav.querySelectorAll(".tab-btn").forEach(btn => {

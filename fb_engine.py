@@ -27,6 +27,51 @@ def compute_jazoest(fb_dtsg: str) -> str:
     return jazoest
 
 
+def extract_facebook_target_id(raw_input: str) -> tuple[str, str]:
+    """
+    Extracts clean numeric ID and auto-detects type (personal, group, post) from any Facebook link.
+    Supports:
+    - https://www.facebook.com/messages/t/82736192847291/ -> ('82736192847291', 'group/personal')
+    - https://mbasic.facebook.com/messages/read/?tid=cid.g.82736192847291 -> ('82736192847291', 'group')
+    - https://mbasic.facebook.com/messages/read/?tid=cid.c.100088273619284 -> ('100088273619284', 'personal')
+    - https://www.facebook.com/profile.php?id=100088273619284 -> ('100088273619284', 'personal')
+    - https://www.facebook.com/posts/123456789_987654321 -> ('123456789_987654321', 'post')
+    - Raw ID: '100012345678' -> ('100012345678', 'detected')
+    """
+    raw_input = raw_input.strip()
+    if not raw_input:
+        return "", ""
+
+    # Check for tid parameter in mbasic/mobile URLs
+    tid_match = re.search(r'tid=(?:cid\.(g|c)\.)?(\d+)', raw_input)
+    if tid_match:
+        t_type = "group" if tid_match.group(1) == "g" else "personal"
+        return tid_match.group(2), t_type
+
+    # Check for /messages/t/{id} or /messages/read/?tid={id}
+    msg_match = re.search(r'/messages/t/(\d+)', raw_input)
+    if msg_match:
+        return msg_match.group(1), "personal"
+
+    # Check for profile.php?id={uid}
+    prof_match = re.search(r'profile\.php\?id=(\d+)', raw_input)
+    if prof_match:
+        return prof_match.group(1), "personal"
+
+    # Check for posts / photos / reels
+    post_match = re.search(r'/(?:posts|videos|reel|photos?|story\.php\?story_fbid=)/([0-9_]+)', raw_input)
+    if post_match:
+        return post_match.group(1), "post"
+
+    # Check if raw numeric ID or combo
+    clean_id = re.search(r'([0-9_]+)', raw_input)
+    if clean_id:
+        extracted = clean_id.group(1)
+        return extracted, "personal" if len(extracted) < 18 else "group"
+
+    return raw_input, "personal"
+
+
 def parse_cookies(cookie_input: str) -> dict:
     """
     Parses various cookie formats:
@@ -596,6 +641,11 @@ class BotRunner:
         if not valid:
             return False, f"FB Cookie Validation Failed: {msg}"
 
+        # Auto extract numeric ID from link if user pasted a URL
+        clean_target_id, detected_type = extract_facebook_target_id(target_id)
+        self.target_id = clean_target_id if clean_target_id else target_id.strip()
+        self.target_type = detected_type if (detected_type and target_type == "personal" and detected_type == "group") else target_type
+
         # Initialize runner variables
         self.stop_event.clear()
         self.pause_event.set()
@@ -604,8 +654,6 @@ class BotRunner:
         self.task_mode = "comment" if task_mode.lower() in ["comment", "post"] else "chat"
         self.trigger_mode = trigger_mode.lower() if trigger_mode in ["reply_seen", "hybrid", "loop"] else "loop"
         self.start_time = time.time()
-        self.target_id = target_id.strip()
-        self.target_type = target_type
         self.user_name = fb_session.user_name
         self.user_id = fb_session.user_id
         self.total_sent = 0
