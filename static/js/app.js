@@ -338,22 +338,35 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // --- File Input Name Display ---
+    // --- File Input Name Display & Auto-Reader ---
     if (cookieFileInput) {
-        cookieFileInput.addEventListener("change", (e) => {
+        cookieFileInput.addEventListener("change", async (e) => {
             if (e.target.files.length > 0) {
-                const fileName = e.target.files[0].name;
-                showToast(`Cookie file selected: ${fileName}`, "info");
+                const file = e.target.files[0];
+                try {
+                    const text = await file.text();
+                    if (cookieInput) cookieInput.value = text;
+                    showToast(`Cookie file loaded: ${file.name}`, "success");
+                } catch (err) {
+                    showToast(`File read error: ${err.message}`, "error");
+                }
             }
         });
     }
 
     if (messagesFileInput) {
-        messagesFileInput.addEventListener("change", (e) => {
+        messagesFileInput.addEventListener("change", async (e) => {
             if (e.target.files.length > 0) {
-                const fileName = e.target.files[0].name;
-                msgFileName.innerHTML = `<strong>Selected:</strong> ${fileName}`;
-                showToast(`Messages file selected: ${fileName}`, "info");
+                const file = e.target.files[0];
+                try {
+                    const text = await file.text();
+                    if (messagesInput) messagesInput.value = text;
+                    const lines = text.split("\n").filter(l => l.trim().length > 0);
+                    msgFileName.innerHTML = `<strong>Selected:</strong> ${file.name} (<b>${lines.length}</b> Messages Loaded)`;
+                    showToast(`Messages loaded: ${lines.length} lines from ${file.name}`, "success");
+                } catch (err) {
+                    showToast(`File read error: ${err.message}`, "error");
+                }
             }
         });
     }
