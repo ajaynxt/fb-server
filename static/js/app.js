@@ -475,6 +475,121 @@ document.addEventListener("DOMContentLoaded", () => {
     loadSavedProfiles();
     loadSavedFiles();
 
+    // --- Persistent Session (Auto-Remember & Auto-Restore) ---
+    const btnClearSavedSession = document.getElementById("btnClearSavedSession");
+    const prefixInput = document.getElementById("prefixInput");
+
+    function saveCurrentSession() {
+        try {
+            const sessionData = {
+                target_id: targetIdInput ? targetIdInput.value : "",
+                target_type: document.querySelector("input[name='target_type']:checked")?.value || "personal",
+                task_mode: document.querySelector("input[name='task_mode']:checked")?.value || "chat",
+                trigger_mode: document.querySelector("input[name='trigger_mode']:checked")?.value || "reply_seen",
+                cookies: cookieInput ? cookieInput.value : "",
+                messages: messagesInput ? messagesInput.value : "",
+                prefix: prefixInput ? prefixInput.value : "",
+                typing_delay: typingDelayInput ? typingDelayInput.value : (typingDelaySlider ? typingDelaySlider.value : "2"),
+                message_delay: messageDelayInput ? messageDelayInput.value : (messageDelaySlider ? messageDelaySlider.value : "5"),
+                run_duration: runDurationInput ? runDurationInput.value : "0",
+                infinite_loop: document.getElementById("infiniteLoopCheck")?.checked ?? true,
+            };
+            localStorage.setItem("fb_bot_persistent_session", JSON.stringify(sessionData));
+        } catch (e) {}
+    }
+
+    function restoreSavedSession() {
+        try {
+            const raw = localStorage.getItem("fb_bot_persistent_session");
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (!data) return;
+
+            // Target
+            if (data.target_id && targetIdInput) {
+                targetIdInput.value = data.target_id;
+                parseTargetLink(data.target_id);
+            }
+            if (data.target_type) {
+                const r = document.querySelector(`input[name='target_type'][value='${data.target_type}']`);
+                if (r) r.checked = true;
+            }
+
+            // Mode
+            if (data.task_mode) {
+                const m = document.querySelector(`input[name='task_mode'][value='${data.task_mode}']`);
+                if (m) {
+                    m.checked = true;
+                    m.dispatchEvent(new Event("change"));
+                }
+            }
+
+            // Trigger Strategy
+            if (data.trigger_mode) {
+                const tr = document.querySelector(`input[name='trigger_mode'][value='${data.trigger_mode}']`);
+                if (tr) tr.checked = true;
+            }
+
+            // Cookies
+            if (data.cookies && cookieInput) {
+                cookieInput.value = data.cookies;
+                const cTab = document.querySelector(".tab-btn[data-tab='cookie-text']");
+                if (cTab) cTab.click();
+                setTimeout(() => {
+                    if (btnVerifyCookie) btnVerifyCookie.click();
+                }, 400);
+            }
+
+            // Messages
+            if (data.messages && messagesInput) {
+                messagesInput.value = data.messages;
+                const mTab = document.querySelector(".tab-btn[data-tab='msg-text']");
+                if (mTab) mTab.click();
+            }
+
+            // Prefix
+            if (data.prefix && prefixInput) {
+                prefixInput.value = data.prefix;
+            }
+
+            // Speeds
+            if (data.typing_delay && data.message_delay) {
+                setSpeed(parseFloat(data.typing_delay), parseFloat(data.message_delay));
+            }
+            if (data.run_duration && runDurationInput) {
+                runDurationInput.value = data.run_duration;
+            }
+            if (data.infinite_loop !== undefined) {
+                const chk = document.getElementById("infiniteLoopCheck");
+                if (chk) chk.checked = data.infinite_loop;
+            }
+            showToast("Saved session auto-restored!", "info");
+        } catch (e) {}
+    }
+
+    // Auto-save on every change in the form
+    if (form) {
+        form.addEventListener("input", saveCurrentSession);
+        form.addEventListener("change", saveCurrentSession);
+    }
+
+    // Reset session button
+    if (btnClearSavedSession) {
+        btnClearSavedSession.addEventListener("click", () => {
+            if (confirm("Kya aap saved details reset karna chahte hain?")) {
+                localStorage.removeItem("fb_bot_persistent_session");
+                form.reset();
+                if (targetSyncBadge) targetSyncBadge.style.display = "none";
+                if (cookieValidationResult) cookieValidationResult.style.display = "none";
+                statAccount.textContent = "Not Connected";
+                showToast("Form details reset ho gayi.", "info");
+            }
+        });
+    }
+
+    // Restore on load
+    restoreSavedSession();
+
     // --- Start Bot ---
     btnStart.addEventListener("click", async (e) => {
         e.preventDefault();

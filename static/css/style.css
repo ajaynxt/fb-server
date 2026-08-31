@@ -348,6 +348,28 @@ body {
     align-items: center;
 }
 
+/* Auto-Remember Banner */
+.session-remember-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 230, 118, 0.08);
+    border: 1px solid rgba(0, 230, 118, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+.banner-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.banner-left strong {
+    color: var(--accent-green);
+}
+
 /* Mode Switcher Grid */
 .mode-switch-grid {
     display: grid;
