@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const targetLabel = document.getElementById("targetLabel");
     const targetHelper = document.getElementById("targetHelper");
     const targetTypeSelector = document.getElementById("targetTypeSelector");
+    const triggerStrategyGroup = document.getElementById("triggerStrategyGroup");
     const targetIdInput = document.getElementById("targetId");
 
     // --- Mode Switching (Chat vs Comment) ---
@@ -54,12 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 targetHelper.textContent = "Facebook Post ID (e.g. 1000123456789_987654321 ya numeric ID) daalein.";
                 targetIdInput.placeholder = "e.g. 1000123456789_987654321 ya 82736192847291";
                 if (targetTypeSelector) targetTypeSelector.style.display = "none";
+                if (triggerStrategyGroup) triggerStrategyGroup.style.display = "none";
                 showToast("Post Auto-Commenter Mode Selected", "info");
             } else {
                 targetLabel.innerHTML = `<i class="fa-solid fa-bullseye"></i> Target Chat ID (Personal UID ya Group ID)`;
                 targetHelper.textContent = "Target User UID ya Group Convo Thread ID daalein.";
                 targetIdInput.placeholder = "e.g. 10001234567890 ya 82736192847291";
                 if (targetTypeSelector) targetTypeSelector.style.display = "grid";
+                if (triggerStrategyGroup) triggerStrategyGroup.style.display = "flex";
                 showToast("Messenger Chat Mode Selected", "info");
             }
         });

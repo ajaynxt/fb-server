@@ -327,6 +327,68 @@ class FacebookSession:
         return True, "Message sent"
 
 
+    def get_latest_thread_info(self, thread_id: str, is_group: bool = False) -> dict:
+        """
+        Polls the conversation to check:
+        1. Last message ID, text, and author UID.
+        2. Whether the other person has SEEN (read watermark).
+        """
+        # Try Mercury thread_info AJAX API
+        try:
+            url = "https://www.facebook.com/ajax/mercury/thread_info.php"
+            payload = {
+                "threads[0][id]": f"user:{thread_id}" if not is_group else f"root:{thread_id}",
+                "fb_dtsg": self.fb_dtsg,
+                "jazoest": self.jazoest,
+                "__user": self.user_id,
+                "__a": "1",
+            }
+            res = self.session.post(url, data=payload, timeout=8)
+            if res.status_code == 200:
+                raw_json = res.text.replace("for (;;);", "").strip()
+                data = json.loads(raw_json)
+                threads = data.get("payload", {}).get("threads", [])
+                if threads:
+                    th = threads[0]
+                    last_msg = th.get("snippet", "")
+                    last_sender = str(th.get("snippet_sender", ""))
+                    read_watermark = th.get("read_watermark_timestamp", 0)
+                    last_message_id = th.get("last_message_id", "")
+                    return {
+                        "success": True,
+                        "last_message_id": str(last_message_id),
+                        "last_sender": last_sender,
+                        "last_text": str(last_msg),
+                        "read_watermark": read_watermark,
+                        "is_self": (last_sender == self.user_id),
+                    }
+        except Exception:
+            pass
+
+        # Fallback to Mobile mbasic page scrape
+        try:
+            tid = f"cid.g.{thread_id}" if is_group else f"cid.c.{thread_id}%3A{self.user_id}"
+            m_url = f"https://mbasic.facebook.com/messages/read/?tid={tid}"
+            res = self.session.get(m_url, timeout=8)
+            if res.status_code == 200:
+                blocks = re.findall(r'<div id="message_(\d+)"[^>]*>(.*?)</div>', res.text)
+                if blocks:
+                    last_id, html_content = blocks[-1]
+                    clean_text = re.sub(r'<[^>]+>', ' ', html_content).strip()
+                    is_self = "seen" in clean_text.lower() or f"/user/{self.user_id}" in html_content
+                    return {
+                        "success": True,
+                        "last_message_id": str(last_id),
+                        "last_sender": self.user_id if is_self else thread_id,
+                        "last_text": clean_text,
+                        "read_watermark": int(time.time() * 1000),
+                        "is_self": is_self,
+                    }
+        except Exception:
+            pass
+
+        return {"success": False}
+
     def post_comment(self, post_id: str, comment_text: str) -> tuple[bool, str]:
         """
         Posts a comment to a Facebook Post, Photo, Video, or Reel.
@@ -463,7 +525,7 @@ class BotRunner:
 
     def start(self, cookies_input: str, target_id: str, target_type: str, messages: list,
               prefix: str = "", typing_delay: int = 3, message_delay: int = 5,
-              infinite_loop: bool = True, task_mode: str = "chat"):
+              infinite_loop: bool = True, task_mode: str = "chat", trigger_mode: str = "loop"):
         """Starts the persistent bot in a background thread for Chat or Comments."""
         if self.is_running:
             return False, "Bot pehle se chal raha hai!"
@@ -493,6 +555,7 @@ class BotRunner:
         self.is_running = True
         self.status = "RUNNING"
         self.task_mode = "comment" if task_mode.lower() in ["comment", "post"] else "chat"
+        self.trigger_mode = trigger_mode.lower() if trigger_mode in ["reply_seen", "hybrid", "loop"] else "loop"
         self.start_time = time.time()
         self.target_id = target_id.strip()
         self.target_type = target_type
@@ -508,13 +571,15 @@ class BotRunner:
         self.prefix = prefix.strip()
 
         mode_name = "💬 POST AUTO-COMMENTER" if self.task_mode == "comment" else f"📨 MESSENGER CHAT ({self.target_type.upper()})"
+        trig_desc = "⚡ INSTANT AUTO-REPLY ON MSG/SEEN" if self.trigger_mode == "reply_seen" else ("🚀 HYBRID (LOOP + AUTO-REPLY)" if self.trigger_mode == "hybrid" else "🔄 CONTINUOUS TIMER LOOP")
+        
         self.add_log(f"🚀 Bot Initialized as '{self.user_name}' (UID: {self.user_id})", "SUCCESS")
-        self.add_log(f"🎯 Mode: {mode_name} | Target: {self.target_id} | Total Items: {self.total_lines}", "INFO")
+        self.add_log(f"🎯 Mode: {mode_name} | Trigger: {trig_desc} | Target: {self.target_id}", "INFO")
         
         if self.task_mode == "chat":
-            self.add_log(f"⚡ Settings: Auto-Seen = ON | Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | Auto-Restart Loop = {self.infinite_loop}", "INFO")
+            self.add_log(f"⚡ Settings: Auto-Seen = ON | Typing Delay = {self.typing_delay}s | Message Interval = {self.message_delay}s | 24/7 Loop = ON", "INFO")
         else:
-            self.add_log(f"⚡ Settings: Comment Interval = {self.message_delay}s | Auto-Restart Loop = {self.infinite_loop}", "INFO")
+            self.add_log(f"⚡ Settings: Comment Interval = {self.message_delay}s | 24/7 Loop = ON", "INFO")
 
         # Launch worker thread
         self.thread = threading.Thread(
@@ -523,7 +588,7 @@ class BotRunner:
             daemon=True
         )
         self.thread.start()
-        return True, f"Bot safaltapoorvak start ho gaya ({mode_name})!"
+        return True, f"Bot safaltapoorvak start ho gaya ({mode_name} - {trig_desc})!"
 
     def stop(self):
         """Immediately stops the bot."""
@@ -569,9 +634,99 @@ class BotRunner:
         return True
 
     def _worker_loop(self, fb_session: FacebookSession, messages: list):
-        """Background continuous execution loop for Chat or Comments."""
+        """Background continuous execution loop for Chat, Comments, and Real-time Auto-Reply Listener."""
         is_group = (self.target_type.lower() == "group")
 
+        # =========================================================================
+        # REAL-TIME LISTENER MODE: "reply_seen" (Message aate hi ya Seen hote hi)
+        # =========================================================================
+        if self.task_mode == "chat" and self.trigger_mode == "reply_seen":
+            last_seen_msg_id = None
+            last_seen_watermark = 0
+            current_idx = 0
+
+            init_info = fb_session.get_latest_thread_info(self.target_id, is_group=is_group)
+            if init_info.get("success"):
+                last_seen_msg_id = init_info.get("last_message_id")
+                last_seen_watermark = init_info.get("read_watermark", 0)
+
+            self.add_log(f"🎧 [LISTENER ACTIVE] Target '{self.target_id}' par live auto-reply monitor active hai. Koi message bhejega ya seen karega toh instant response jayega!", "INFO")
+
+            while not self.stop_event.is_set():
+                self.pause_event.wait()
+                
+                info = fb_session.get_latest_thread_info(self.target_id, is_group=is_group)
+                trigger_reason = None
+
+                if info.get("success"):
+                    msg_id = info.get("last_message_id")
+                    is_self = info.get("is_self")
+                    watermark = info.get("read_watermark", 0)
+                    last_text = info.get("last_text", "")
+
+                    # 1. New incoming message from other person
+                    if not is_self and msg_id and msg_id != last_seen_msg_id:
+                        trigger_reason = f"Incoming Message: \"{last_text[:30]}\""
+                        last_seen_msg_id = msg_id
+
+                    # 2. Target Seen our message (watermark advanced)
+                    elif watermark and watermark > last_seen_watermark and is_self:
+                        trigger_reason = "Target Seen (Read Receipt Detected)"
+                        last_seen_watermark = watermark
+
+                if trigger_reason:
+                    self.add_log(f"🔔 [TRIGGER] {trigger_reason}! Auto-typing & responding...", "SEEN")
+
+                    # 1. Auto-Seen
+                    self.status = "SEEN"
+                    fb_session.mark_as_seen(self.target_id, is_group=is_group)
+                    
+                    # 2. Auto-Typing
+                    self.status = "TYPING"
+                    fb_session.send_typing_indicator(self.target_id, is_typing=True)
+                    self.add_log(f"⌨️ [TYPING] FB par 'typing...' indicator start kiya ({self.typing_delay}s)...", "TYPING")
+
+                    if not self._sleep_interruptible(self.typing_delay):
+                        fb_session.send_typing_indicator(self.target_id, is_typing=False)
+                        break
+
+                    # 3. Next message from file
+                    if current_idx >= len(messages):
+                        current_idx = 0
+                        self.loop_count += 1
+                        self.add_log(f"🔄 [FILE RESTART] Sabhi messages deliver ho gaye! Loop #{self.loop_count} shuru se start ho raha hai...", "SUCCESS")
+
+                    raw_line = messages[current_idx]
+                    self.current_line_idx = current_idx + 1
+                    current_idx += 1
+
+                    full_message = f"{self.prefix} {raw_line.strip()}".strip() if self.prefix else raw_line.strip()
+
+                    # 4. Send Message
+                    self.status = "SENDING"
+                    success, res_msg = fb_session.send_message(self.target_id, full_message, is_group=is_group)
+                    fb_session.send_typing_indicator(self.target_id, is_typing=False)
+
+                    if success:
+                        self.total_sent += 1
+                        self.add_log(f"⚡ [AUTO-REPLY DELIVERED #{self.total_sent}] -> \"{full_message[:45]}\"", "SUCCESS")
+                    else:
+                        self.add_log(f"⚠️ [FAILED] Send fail: {res_msg}", "WARN")
+
+                    # Cooldown interval
+                    self.status = "RUNNING"
+                    self._sleep_interruptible(max(1.5, float(self.message_delay)))
+                else:
+                    # Poll check sleep
+                    self._sleep_interruptible(1.5)
+
+            self.is_running = False
+            self.status = "STOPPED"
+            return
+
+        # =========================================================================
+        # CONTINUOUS LOOP MODE: Chat or Post Comments
+        # =========================================================================
         while not self.stop_event.is_set():
             for idx, raw_line in enumerate(messages):
                 if self.stop_event.is_set():
@@ -585,9 +740,7 @@ class BotRunner:
 
                 full_message = f"{self.prefix} {line}".strip() if self.prefix else line
 
-                # ==========================================
                 # MODE 1: POST AUTO-COMMENTER
-                # ==========================================
                 if self.task_mode == "comment":
                     try:
                         self.status = "COMMENTING"
@@ -607,9 +760,7 @@ class BotRunner:
                         if not self._sleep_interruptible(5.0):
                             break
 
-                # ==========================================
                 # MODE 2: MESSENGER CHAT (PERSONAL / GROUP)
-                # ==========================================
                 else:
                     try:
                         # 1. AUTO-SEEN: Mark chat as seen
@@ -625,7 +776,6 @@ class BotRunner:
                         fb_session.send_typing_indicator(self.target_id, is_typing=True)
                         self.add_log(f"⌨️ [TYPING] FB par 'typing...' indicator start kiya ({self.typing_delay}s)...", "TYPING")
 
-                        # Simulating typing duration
                         if not self._sleep_interruptible(self.typing_delay):
                             fb_session.send_typing_indicator(self.target_id, is_typing=False)
                             break
@@ -633,8 +783,6 @@ class BotRunner:
                         # 3. SEND MESSAGE
                         self.status = "SENDING"
                         success, res_msg = fb_session.send_message(self.target_id, full_message, is_group=is_group)
-
-                        # 4. STOP TYPING INDICATOR
                         fb_session.send_typing_indicator(self.target_id, is_typing=False)
 
                         if success:
@@ -690,6 +838,7 @@ class BotRunner:
             "is_running": self.is_running,
             "status": self.status,
             "task_mode": self.task_mode,
+            "trigger_mode": getattr(self, "trigger_mode", "loop"),
             "uptime": uptime_str,
             "target_id": self.target_id,
             "target_type": self.target_type,

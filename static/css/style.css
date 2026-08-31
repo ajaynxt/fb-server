@@ -405,6 +405,57 @@ body {
     margin-bottom: 4px;
 }
 
+/* Trigger Type Selector */
+.trigger-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+@media (max-width: 600px) {
+    .trigger-type-selector {
+        grid-template-columns: 1fr;
+    }
+}
+.radio-card {
+    cursor: pointer;
+}
+.radio-card input {
+    display: none;
+}
+.radio-card span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+.trig-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.86rem;
+    color: var(--text-primary);
+}
+.trig-top i {
+    color: var(--accent-amber);
+}
+.radio-card span small {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+.radio-card input:checked + span {
+    background: rgba(255, 171, 0, 0.1);
+    border-color: var(--accent-amber);
+    box-shadow: 0 0 14px rgba(255, 171, 0, 0.2);
+}
+.radio-card input:checked + span .trig-top strong {
+    color: #fff;
+}
+
 .radio-pill {
     cursor: pointer;
 }

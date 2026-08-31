@@ -118,6 +118,29 @@
                         </div>
                     </div>
 
+                    <!-- Trigger Strategy (For Chat Mode) -->
+                    <div class="form-group" id="triggerStrategyGroup">
+                        <label class="form-label">
+                            <i class="fa-solid fa-bolt-lightning"></i> Chat Trigger Strategy
+                        </label>
+                        <div class="trigger-type-selector">
+                            <label class="radio-card">
+                                <input type="radio" name="trigger_mode" value="reply_seen" checked>
+                                <span>
+                                    <div class="trig-top"><i class="fa-solid fa-reply-all"></i> <strong>Reply-to-Reply & Seen</strong></div>
+                                    <small>Koi message aate hi ya message Seen hote hi turant Auto-Seen & Typing karke reply karega</small>
+                                </span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="trigger_mode" value="loop">
+                                <span>
+                                    <div class="trig-top"><i class="fa-solid fa-stopwatch"></i> <strong>Continuous Timer Loop</strong></div>
+                                    <small>Fixed delay interval par lagatar file se ek ke baad ek messages bhejta rahega</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Target Section -->
                     <div class="form-group" id="targetGroupChat">
                         <label class="form-label" id="targetLabel">

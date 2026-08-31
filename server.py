@@ -73,6 +73,7 @@ def start_bot():
         messages_raw = data.get("messages", "")
         prefix = data.get("prefix", "")
         task_mode = data.get("task_mode", "chat")
+        trigger_mode = data.get("trigger_mode", "loop")
         typing_delay = data.get("typing_delay", 3)
         message_delay = data.get("message_delay", 5)
         infinite_loop = data.get("infinite_loop", True)
@@ -87,6 +88,7 @@ def start_bot():
         target_id = request.form.get("target_id", "")
         target_type = request.form.get("target_type", "personal")
         task_mode = request.form.get("task_mode", "chat")
+        trigger_mode = request.form.get("trigger_mode", "loop")
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
         typing_delay = int(request.form.get("typing_delay", 3))
@@ -119,7 +121,8 @@ def start_bot():
         typing_delay=typing_delay,
         message_delay=message_delay,
         infinite_loop=infinite_loop,
-        task_mode=task_mode
+        task_mode=task_mode,
+        trigger_mode=trigger_mode
     )
 
     return jsonify({"success": success, "message": message}), (200 if success else 400)
