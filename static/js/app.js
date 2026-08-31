@@ -613,6 +613,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 messages: messagesInput ? messagesInput.value : "",
                 prefix: prefixInput ? prefixInput.value : "",
                 proxy: proxyInput ? proxyInput.value : "",
+                rotate_ip: document.getElementById("rotateIpCheck")?.checked ?? true,
                 typing_delay: typingDelayInput ? typingDelayInput.value : (typingDelaySlider ? typingDelaySlider.value : "2"),
                 message_delay: messageDelayInput ? messageDelayInput.value : (messageDelaySlider ? messageDelaySlider.value : "5"),
                 run_duration: runDurationInput ? runDurationInput.value : "0",
@@ -678,6 +679,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.proxy && proxyInput) {
                 proxyInput.value = data.proxy;
             }
+            if (data.rotate_ip !== undefined) {
+                const rChk = document.getElementById("rotateIpCheck");
+                if (rChk) rChk.checked = data.rotate_ip;
+            }
 
             // Speeds
             if (data.typing_delay && data.message_delay) {
@@ -704,11 +709,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (currentIpText) currentIpText.textContent = "Checking IP...";
         if (currentCountryText) currentCountryText.textContent = "Locating...";
 
+        let targetProxy = proxyUrl;
+        if (!targetProxy && proxyInput) {
+            const lines = proxyInput.value.trim().split("\n").map(l => l.strip ? l.strip() : l.trim()).filter(Boolean);
+            if (lines.length > 0) {
+                // Test a random proxy from pool
+                targetProxy = lines[Math.floor(Math.random() * lines.length)];
+            }
+        }
+
         try {
             const res = await fetch("/api/check_ip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ proxy: proxyUrl || (proxyInput ? proxyInput.value.trim() : "") })
+                body: JSON.stringify({ proxy: targetProxy })
             });
             const data = await res.json();
             if (data.success) {
@@ -729,9 +743,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnCheckIp) {
         btnCheckIp.addEventListener("click", () => {
-            const prx = proxyInput ? proxyInput.value.trim() : "";
-            checkLiveIp(prx);
-            showToast(prx ? "Checking Proxy IP..." : "Checking Server IP...", "info");
+            checkLiveIp();
+            showToast("Testing Indian IP Rotation...", "info");
         });
     }
 

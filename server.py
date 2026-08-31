@@ -122,6 +122,7 @@ def start_bot():
         messages_raw = data.get("messages", "")
         prefix = data.get("prefix", "")
         proxy = data.get("proxy", "")
+        rotate_ip = data.get("rotate_ip", True)
         task_mode = data.get("task_mode", "chat")
         trigger_mode = data.get("trigger_mode", "loop")
         typing_delay = data.get("typing_delay", 3)
@@ -142,6 +143,7 @@ def start_bot():
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
         proxy = request.form.get("proxy", "")
+        rotate_ip = request.form.get("rotate_ip", "true").lower() in ["true", "1", "on", "yes"]
         typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
         message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
         run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
@@ -176,7 +178,8 @@ def start_bot():
         task_mode=task_mode,
         trigger_mode=trigger_mode,
         run_duration_mins=run_duration_mins,
-        proxy=proxy
+        proxy=proxy,
+        rotate_ip=rotate_ip
     )
 
     return jsonify({"success": success, "message": message}), (200 if success else 400)
@@ -265,6 +268,7 @@ def start_server_instance(task_id):
         messages_raw = data.get("messages", "")
         prefix = data.get("prefix", "")
         proxy = data.get("proxy", "")
+        rotate_ip = data.get("rotate_ip", True)
         task_mode = data.get("task_mode", "chat")
         trigger_mode = data.get("trigger_mode", "loop")
         typing_delay = float(data.get("typing_delay", 2.0) or 2.0)
@@ -284,6 +288,7 @@ def start_server_instance(task_id):
         messages_text = request.form.get("messages", "")
         prefix = request.form.get("prefix", "")
         proxy = request.form.get("proxy", "")
+        rotate_ip = request.form.get("rotate_ip", "true").lower() in ["true", "1", "on", "yes"]
         typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
         message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
         run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
@@ -305,7 +310,8 @@ def start_server_instance(task_id):
         task_mode=task_mode,
         trigger_mode=trigger_mode,
         run_duration_mins=run_duration_mins,
-        proxy=proxy
+        proxy=proxy,
+        rotate_ip=rotate_ip
     )
     return jsonify({"success": success, "message": message, "task_id": task_id})
 

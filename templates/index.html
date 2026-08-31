@@ -352,23 +352,31 @@
                         <input type="text" id="prefixInput" name="prefix" class="form-input" placeholder="e.g. [BOSS] ya [VIP] ya Target Name">
                     </div>
 
-                    <!-- Indian / Custom Proxy IP Gateway (Anti-Ban & Real Location) -->
-                    <div class="form-group proxy-box" style="background: rgba(0, 242, 254, 0.03); border: 1px dashed rgba(0, 242, 254, 0.25); border-radius: var(--radius-md); padding: 12px 14px;">
+                    <!-- Rotating Indian IP Proxy Pool (Never Same IP / Dynamic Location) -->
+                    <div class="form-group proxy-box" style="background: rgba(0, 242, 254, 0.03); border: 1px dashed rgba(0, 242, 254, 0.3); border-radius: var(--radius-md); padding: 14px;">
                         <div class="label-with-action">
-                            <label class="form-label" for="proxyInput" style="margin-bottom:0;">
-                                <i class="fa-solid fa-earth-asia" style="color:var(--accent-cyan)"></i> 🇮🇳 India IP Proxy Gateway (Anti-Ban)
+                            <label class="form-label" for="proxyInput" style="margin-bottom:0; font-weight:700;">
+                                <i class="fa-solid fa-earth-asia" style="color:var(--accent-cyan)"></i> 🇮🇳 Rotating Indian IP Proxy Pool (Never Same Location)
                             </label>
-                            <button type="button" id="btnCheckIp" class="btn-text" style="color:var(--accent-cyan);">
-                                <i class="fa-solid fa-location-dot"></i> Check Live IP
+                            <button type="button" id="btnCheckIp" class="btn-text" style="color:var(--accent-cyan); font-weight:600;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Test IP Rotation
                             </button>
                         </div>
-                        <input type="text" id="proxyInput" name="proxy" class="form-input code-font" placeholder="http://ip:port ya http://user:pass@ip:port (e.g. 103.xxx.xxx.xxx:8080)" style="margin-top:8px;">
-                        <div id="ipStatusPill" style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; font-size:0.75rem; color:var(--text-secondary);">
-                            <span><i class="fa-solid fa-satellite-dish"></i> Outgoing IP: <b id="currentIpText" style="color:var(--accent-green);">Checking IP...</b></span>
-                            <span id="currentCountryText" class="badge-tag" style="background:rgba(0, 230, 118, 0.15); color:var(--accent-green);">🇮🇳 India / Cloud</span>
+                        
+                        <textarea id="proxyInput" name="proxy" class="form-textarea code-font" rows="2" placeholder="Multiple Indian Proxies paste karein (1 per line) ya Rotating Gateway:&#10;103.15.xxx.1:8080&#10;103.45.xxx.2:8080&#10;http://user:pass@india-rotating.proxy.com:8080" style="margin-top:8px; font-size:0.8rem;"></textarea>
+                        
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                            <label class="checkbox-label" style="font-size:0.78rem; color:var(--text-primary); cursor:pointer;">
+                                <input type="checkbox" id="rotateIpCheck" name="rotate_ip" checked style="accent-color:var(--accent-cyan);">
+                                <b>🔄 Auto-Rotate Indian IPs (Har message par alag Indian location/IP)</b>
+                            </label>
+                            <div id="ipStatusPill" style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-secondary);">
+                                <span><i class="fa-solid fa-satellite-dish"></i> Live IP: <b id="currentIpText" style="color:var(--accent-green);">Checking...</b></span>
+                                <span id="currentCountryText" class="badge-tag" style="background:rgba(0, 230, 118, 0.15); color:var(--accent-green);">🇮🇳 India</span>
+                            </div>
                         </div>
-                        <small class="helper-text" style="color: var(--text-muted); margin-top: 4px; display: block;">
-                            Apna Indian Proxy yahan daalein taaki Facebook account ki location match ho aur IP ban na ho. (Khali chhodne par direct server IP use hogi).
+                        <small class="helper-text" style="color: var(--text-muted); margin-top: 6px; display: block;">
+                            <i class="fa-solid fa-shield-check" style="color:var(--accent-cyan)"></i> <b>Dynamic IP Pool:</b> Har message/comment bhejte waqt bot automatically nayi Indian IP switch karega taaki IP address badalta rahe aur account kabhi block na ho!
                         </small>
                     </div>
 

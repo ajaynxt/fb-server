@@ -124,18 +124,30 @@ def parse_cookies(cookie_input: str) -> dict:
 class FacebookSession:
     """Manages Facebook session, token extraction, mark seen, typing, and message delivery."""
 
-    def __init__(self, cookies: dict, proxy: str = ""):
+    def __init__(self, cookies: dict, proxy: str = "", rotate_ip: bool = True):
         self.cookies = cookies
         self.access_token = self.cookies.get("access_token", "")
-        self.proxy = proxy.strip() if proxy else ""
+        self.raw_proxy = proxy.strip() if proxy else ""
+        self.rotate_ip = rotate_ip
+        
+        # Build proxy pool (supports multi-line list or comma-separated)
+        self.proxy_pool = []
+        if self.raw_proxy:
+            lines = self.raw_proxy.replace(",", "\n").split("\n")
+            for line in lines:
+                p = line.strip()
+                if p:
+                    if not (p.startswith("http://") or p.startswith("https://") or p.startswith("socks5://")):
+                        p = "http://" + p
+                    self.proxy_pool.append(p)
+        
+        self.current_proxy_idx = 0
+        self.current_proxy_url = ""
         self.session = requests.Session()
         
-        # Configure Indian / Custom Proxy if provided
-        if self.proxy:
-            self.session.proxies = {
-                "http": self.proxy,
-                "https": self.proxy
-            }
+        # Apply initial proxy
+        if self.proxy_pool:
+            self.rotate_ip_address()
         
         # Build direct Cookie header string to ensure cookies are always sent to all domains
         self.cookie_header_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items() if k != "access_token"])
@@ -162,6 +174,26 @@ class FacebookSession:
         self.fb_dtsg = ""
         self.jazoest = ""
         self.is_valid = False
+
+    def rotate_ip_address(self) -> str:
+        """Rotates to next Indian IP address in pool or generates dynamic session."""
+        if not self.proxy_pool:
+            return ""
+        
+        chosen_proxy = self.proxy_pool[self.current_proxy_idx % len(self.proxy_pool)]
+        self.current_proxy_idx += 1
+        
+        # If proxy URL supports dynamic session rotation (e.g. user-session-1234)
+        if "-session-" in chosen_proxy or "_session-" in chosen_proxy:
+            new_sess = str(random.randint(100000, 999999))
+            chosen_proxy = re.sub(r'[-_]session[-_][A-Za-z0-9]+', f'-session-{new_sess}', chosen_proxy)
+            
+        self.current_proxy_url = chosen_proxy
+        self.session.proxies = {
+            "http": chosen_proxy,
+            "https": chosen_proxy
+        }
+        return chosen_proxy
 
     def validate_and_extract_tokens(self) -> tuple[bool, str]:
         """Validates cookie session or Access Token and extracts fb_dtsg and account profile name."""
@@ -751,7 +783,7 @@ class BotRunner:
     def start(self, cookies_input: str, target_id: str, target_type: str, messages: list,
               prefix: str = "", typing_delay: float = 2.0, message_delay: float = 5.0,
               infinite_loop: bool = True, task_mode: str = "chat", trigger_mode: str = "loop",
-              run_duration_mins: float = 0.0, proxy: str = ""):
+              run_duration_mins: float = 0.0, proxy: str = "", rotate_ip: bool = True):
         """Starts the persistent bot in a background thread for Chat or Comments."""
         if self.is_running:
             return False, "Bot pehle se chal raha hai!"
@@ -770,7 +802,7 @@ class BotRunner:
         if not cookies:
             return False, "Cookies format invalid hai."
 
-        fb_session = FacebookSession(cookies, proxy=proxy)
+        fb_session = FacebookSession(cookies, proxy=proxy, rotate_ip=rotate_ip)
         valid, msg = fb_session.validate_and_extract_tokens()
         if not valid:
             return False, f"FB Cookie Validation Failed: {msg}"
@@ -943,6 +975,11 @@ class BotRunner:
                     full_message = f"{self.prefix} {raw_line.strip()}".strip() if self.prefix else raw_line.strip()
 
                     # 4. Send Message
+                    if getattr(fb_session, "rotate_ip", True) and len(getattr(fb_session, "proxy_pool", [])) > 1:
+                        new_prx = fb_session.rotate_ip_address()
+                        clean_prx = re.sub(r':([^:@]+)@', ':***@', new_prx.replace('http://', '').replace('https://', ''))
+                        self.add_log(f"🔄 [IP ROTATED] Nayi Indian Location/IP switch hui: {clean_prx}", "INFO")
+
                     self.status = "SENDING"
                     success, res_msg = fb_session.send_message(self.target_id, full_message, is_group=is_group)
                     fb_session.send_typing_indicator(self.target_id, is_typing=False)
@@ -987,6 +1024,12 @@ class BotRunner:
                     continue
 
                 full_message = f"{self.prefix} {line}".strip() if self.prefix else line
+
+                # Rotate Indian IP on each loop cycle
+                if getattr(fb_session, "rotate_ip", True) and len(getattr(fb_session, "proxy_pool", [])) > 1:
+                    new_prx = fb_session.rotate_ip_address()
+                    clean_prx = re.sub(r':([^:@]+)@', ':***@', new_prx.replace('http://', '').replace('https://', ''))
+                    self.add_log(f"🔄 [IP ROTATED] Nayi Indian Location/IP switch hui: {clean_prx}", "INFO")
 
                 # MODE 1: POST AUTO-COMMENTER
                 if self.task_mode == "comment":
