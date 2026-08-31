@@ -333,29 +333,75 @@ class FacebookSession:
     def send_message(self, thread_id: str, message_text: str, is_group: bool = False) -> tuple[bool, str]:
         """
         Dispatches message to Facebook Messenger (personal UID or group thread_id).
-        Tries Mercury AJAX API first, then falls back to mbasic composer and mobile endpoints.
+        Tries:
+        1. Direct mbasic Mobile Composer (with full dynamic hidden field extraction)
+        2. Direct mbasic Thread Reader (cid.c.{thread_id}:{self.user_id} or cid.g.{thread_id})
+        3. Web Mercury AJAX Send Messages
+        4. Graph API (if Access Token provided)
         """
-        msg_time = int(time.time() * 1000)
-        client_msg_id = f"{msg_time}{random.randint(100, 999)}"
-
-        # Method 0: Graph API (If Access Token provided)
-        if self.access_token:
-            try:
-                graph_url = f"https://graph.facebook.com/v19.0/me/messages?access_token={self.access_token}"
-                payload_graph = {
-                    "recipient": {"id": str(thread_id)},
-                    "message": {"text": message_text},
-                    "messaging_type": "MESSAGE_TAG",
-                    "tag": "ACCOUNT_UPDATE"
-                }
-                res_g = self.session.post(graph_url, json=payload_graph, timeout=12)
-                if res_g.status_code in [200, 201] and ("message_id" in res_g.text or "recipient_id" in res_g.text):
-                    return True, "Delivered via Facebook Graph API (Access Token)"
-            except Exception:
-                pass
-
-        # Method 1: Mercury Send Messages AJAX API (Fastest)
+        # --- Method 1: mbasic Dynamic Form Composer (Personal & Group) ---
         try:
+            compose_urls = []
+            if not is_group:
+                compose_urls.append(f"https://mbasic.facebook.com/messages/compose/?ids={thread_id}")
+                compose_urls.append(f"https://mbasic.facebook.com/messages/read/?tid=cid.c.{thread_id}%3A{self.user_id}")
+                compose_urls.append(f"https://mbasic.facebook.com/messages/read/?tid={thread_id}")
+            else:
+                compose_urls.append(f"https://mbasic.facebook.com/messages/read/?tid=cid.g.{thread_id}")
+                compose_urls.append(f"https://mbasic.facebook.com/messages/read/?tid={thread_id}")
+
+            for c_url in compose_urls:
+                get_res = self.session.get(c_url, headers={"User-Agent": MOBILE_UA}, timeout=12)
+                form_match = re.search(r'<form\s+action="([^"]+)"[^>]*method=["\']post["\']', get_res.text, re.IGNORECASE)
+                if form_match:
+                    post_action = form_match.group(1).replace("&amp;", "&")
+                    if not post_action.startswith("http"):
+                        post_action = "https://mbasic.facebook.com" + post_action
+
+                    # Dynamically extract all form input tags
+                    form_data = {}
+                    inputs = re.findall(r'<input\s+[^>]*>', get_res.text, re.IGNORECASE)
+                    for inp in inputs:
+                        name_m = re.search(r'name=["\']([^"\']+)["\']', inp)
+                        val_m = re.search(r'value=["\']([^"\']*)["\']', inp)
+                        if name_m:
+                            name = name_m.group(1)
+                            val = val_m.group(1) if val_m else ""
+                            form_data[name] = val
+
+                    # Fallbacks if regex missed
+                    if "fb_dtsg" not in form_data and self.fb_dtsg:
+                        form_data["fb_dtsg"] = self.fb_dtsg
+                    if "jazoest" not in form_data and self.jazoest:
+                        form_data["jazoest"] = self.jazoest
+                    if not is_group and f"ids[{thread_id}]" not in form_data:
+                        form_data[f"ids[{thread_id}]"] = str(thread_id)
+
+                    form_data["body"] = message_text
+                    form_data["Send"] = "Send"
+                    form_data["send"] = "Send"
+
+                    headers_post = {
+                        "User-Agent": MOBILE_UA,
+                        "Origin": "https://mbasic.facebook.com",
+                        "Referer": c_url,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    }
+
+                    send_res = self.session.post(post_action, data=form_data, headers=headers_post, timeout=12, allow_redirects=True)
+                    # Successful delivery if status 200/302 and no checkpoint/error page
+                    if send_res.status_code in [200, 302]:
+                        if "checkpoint" not in send_res.url and "error" not in send_res.url:
+                            # Verify if body text or thread rendered
+                            if "messages/read" in send_res.url or "send_success" in send_res.text or len(send_res.history) > 0 or send_res.status_code == 200:
+                                return True, "Delivered via Mobile Engine"
+        except Exception:
+            pass
+
+        # --- Method 2: Mercury Send Messages AJAX API (Web) ---
+        try:
+            msg_time = int(time.time() * 1000)
+            client_msg_id = f"{msg_time}{random.randint(100, 999)}"
             url = "https://www.facebook.com/ajax/mercury/send_messages.php"
             payload = {
                 "message_batch[0][action_type]": "ma-type:user-generated-message",
@@ -403,67 +449,29 @@ class FacebookSession:
             }
 
             res = self.session.post(url, data=payload, headers=headers, timeout=12)
-            if res.status_code == 200 and ("payload" in res.text or "message_id" in res.text or "errorSummary" not in res.text):
-                return True, "Delivered via Web Mercury API"
+            if res.status_code == 200:
+                if '"error":' not in res.text and ('"payload":' in res.text or '"actions":' in res.text or '"thread_fbid":' in res.text or 'message_id' in res.text):
+                    return True, "Delivered via Web Mercury API"
         except Exception:
             pass
 
-        # Method 2: Mobile Composer Form Submitter (For Personal Inbox)
-        if not is_group:
+        # --- Method 3: Facebook Graph API (If Token Provided) ---
+        if self.access_token:
             try:
-                compose_url = f"https://mbasic.facebook.com/messages/compose/?ids={thread_id}"
-                comp_res = self.session.get(compose_url, timeout=12)
-                form_match = re.search(r'<form action="([^"]+)" method="post"', comp_res.text)
-                if form_match:
-                    post_action = "https://mbasic.facebook.com" + form_match.group(1).replace("&amp;", "&")
-                    dtsg_m = re.search(r'name="fb_dtsg" value="([^"]+)"', comp_res.text)
-                    jazoest_m = re.search(r'name="jazoest" value="([^"]+)"', comp_res.text)
-                    
-                    m_payload = {
-                        "fb_dtsg": dtsg_m.group(1) if dtsg_m else self.fb_dtsg,
-                        "jazoest": jazoest_m.group(1) if jazoest_m else self.jazoest,
-                        "body": message_text,
-                        "send": "Send",
-                    }
-                    send_res = self.session.post(post_action, data=m_payload, timeout=12)
-                    if send_res.status_code in [200, 302]:
-                        return True, "Delivered via Personal Composer Engine"
+                graph_url = f"https://graph.facebook.com/v19.0/me/messages?access_token={self.access_token}"
+                payload_graph = {
+                    "recipient": {"id": str(thread_id)},
+                    "message": {"text": message_text},
+                    "messaging_type": "MESSAGE_TAG",
+                    "tag": "ACCOUNT_UPDATE"
+                }
+                res_g = self.session.post(graph_url, json=payload_graph, timeout=12)
+                if res_g.status_code in [200, 201] and ("message_id" in res_g.text or "recipient_id" in res_g.text):
+                    return True, "Delivered via Facebook Graph API"
             except Exception:
                 pass
 
-        # Method 3: Mobile mbasic Thread Reader Form Submitter (Group / Existing Chat)
-        try:
-            tid_variants = [
-                thread_id,
-                f"cid.g.{thread_id}" if is_group else f"cid.c.{thread_id}%3A{self.user_id}"
-            ]
-            for tid in tid_variants:
-                mbasic_url = f"https://mbasic.facebook.com/messages/read/?tid={tid}"
-                get_res = self.session.get(mbasic_url, timeout=12)
-                
-                form_match = re.search(r'<form action="([^"]+)" method="post"', get_res.text)
-                if form_match:
-                    post_action = "https://mbasic.facebook.com" + form_match.group(1).replace("&amp;", "&")
-                    dtsg_m = re.search(r'name="fb_dtsg" value="([^"]+)"', get_res.text)
-                    jazoest_m = re.search(r'name="jazoest" value="([^"]+)"', get_res.text)
-                    tids_m = re.search(r'name="tids" value="([^"]+)"', get_res.text)
-                    
-                    m_payload = {
-                        "fb_dtsg": dtsg_m.group(1) if dtsg_m else self.fb_dtsg,
-                        "jazoest": jazoest_m.group(1) if jazoest_m else self.jazoest,
-                        "body": message_text,
-                        "send": "Send",
-                    }
-                    if tids_m:
-                        m_payload["tids"] = tids_m.group(1)
-
-                    send_res = self.session.post(post_action, data=m_payload, timeout=12)
-                    if send_res.status_code in [200, 302]:
-                        return True, "Delivered via Mobile Fallback Engine"
-        except Exception as e:
-            return False, f"Send failed: {str(e)}"
-
-        return True, "Message sent"
+        return False, "Delivery failed: Target UID par message allow nahi hua ya thread open nahi ho saka."
 
 
     def get_latest_thread_info(self, thread_id: str, is_group: bool = False) -> dict:
