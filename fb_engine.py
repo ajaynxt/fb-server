@@ -747,6 +747,7 @@ class BotRunner:
 
             self.add_log(f"🎧 [LISTENER ACTIVE] Target '{self.target_id}' par live auto-reply monitor active hai. Koi message bhejega ya seen karega toh instant response jayega!", "INFO")
 
+            is_first_start = True
             while not self.stop_event.is_set():
                 self.pause_event.wait()
                 
@@ -757,24 +758,29 @@ class BotRunner:
                     self.status = "COMPLETED"
                     break
                 
-                info = fb_session.get_latest_thread_info(self.target_id, is_group=is_group)
                 trigger_reason = None
 
-                if info.get("success"):
-                    msg_id = info.get("last_message_id")
-                    is_self = info.get("is_self")
-                    watermark = info.get("read_watermark", 0)
-                    last_text = info.get("last_text", "")
+                # On start, send first message immediately
+                if is_first_start:
+                    trigger_reason = "Initial Kickoff (First Message Dispatch)"
+                    is_first_start = False
+                else:
+                    info = fb_session.get_latest_thread_info(self.target_id, is_group=is_group)
+                    if info.get("success"):
+                        msg_id = info.get("last_message_id")
+                        is_self = info.get("is_self")
+                        watermark = info.get("read_watermark", 0)
+                        last_text = info.get("last_text", "")
 
-                    # 1. New incoming message from other person
-                    if not is_self and msg_id and msg_id != last_seen_msg_id:
-                        trigger_reason = f"Incoming Message: \"{last_text[:30]}\""
-                        last_seen_msg_id = msg_id
+                        # 1. New incoming message from other person
+                        if not is_self and msg_id and msg_id != last_seen_msg_id:
+                            trigger_reason = f"Incoming Message: \"{last_text[:30]}\""
+                            last_seen_msg_id = msg_id
 
-                    # 2. Target Seen our message (watermark advanced)
-                    elif watermark and watermark > last_seen_watermark and is_self:
-                        trigger_reason = "Target Seen (Read Receipt Detected)"
-                        last_seen_watermark = watermark
+                        # 2. Target Seen our message (watermark advanced)
+                        elif watermark and watermark > last_seen_watermark and is_self:
+                            trigger_reason = "Target Seen (Read Receipt Detected)"
+                            last_seen_watermark = watermark
 
                 if trigger_reason:
                     self.add_log(f"🔔 [TRIGGER] {trigger_reason}! Auto-typing & responding...", "SEEN")
