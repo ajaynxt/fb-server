@@ -234,48 +234,52 @@
                         <small class="helper-text" id="targetHelper">Aap direct FB Chat Link (URL) ya numeric ID daal sakte hain, server auto-detect kar lega.</small>
                     </div>
 
-                    <!-- Authentication Section (Token / Cookies) -->
+                    <!-- Authentication Section (Primary: Facebook Access Token) -->
                     <div class="form-group">
                         <div class="label-with-action">
                             <label class="form-label">
-                                <i class="fa-solid fa-key" style="color:var(--accent-amber)"></i> Facebook Access Token (MonokaiToolkit / EAA...) ya Cookies
+                                <i class="fa-solid fa-key" style="color:var(--accent-amber)"></i> Facebook Access Token (MonokaiToolkit / EAA...)
                             </label>
                             <div class="label-btns">
                                 <button type="button" id="btnOpenCookieGuide" class="btn-text" style="color: var(--accent-amber);">
-                                    <i class="fa-solid fa-book-open"></i> Token/Cookie Guide
+                                    <i class="fa-solid fa-book-open"></i> Token Guide
                                 </button>
                                 <button type="button" id="btnSaveCookieProfile" class="btn-text">
-                                    <i class="fa-solid fa-floppy-disk"></i> Save to Server
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Token to Vault
                                 </button>
-                                <button type="button" id="btnVerifyCookie" class="btn-text">
-                                    <i class="fa-solid fa-shield-check"></i> Check Token/Cookie
+                                <button type="button" id="btnVerifyCookie" class="btn-text" style="color: var(--accent-cyan);">
+                                    <i class="fa-solid fa-shield-check"></i> Verify Token
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Saved Cookie Profiles Vault Dropdown -->
+                        <!-- Saved Token Profiles Vault Dropdown -->
                         <div class="vault-row" id="cookieVaultRow">
                             <select id="savedCookieProfilesSelect" class="form-select">
-                                <option value="">📂 [Select Saved Token / FB Profile from Server Storage]</option>
+                                <option value="">📂 [Select Saved Access Token from Server Vault]</option>
                             </select>
                         </div>
 
                         <div class="tabs-nav">
-                            <button type="button" class="tab-btn active" data-tab="cookie-text">Paste Token / Cookies</button>
-                            <button type="button" class="tab-btn" data-tab="cookie-file">Upload Token/Cookie File</button>
+                            <button type="button" class="tab-btn active" data-tab="cookie-text">🔑 Paste Access Token (EAA...)</button>
+                            <button type="button" class="tab-btn" data-tab="cookie-file">📁 Upload Token File</button>
                         </div>
 
                         <div class="tab-content active" id="tab-cookie-text">
-                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="MonokaiToolkit Token (e.g. EAAAAAY...) ya Cookies (c_user=...; xs=...; ya AppState JSON) paste karein"></textarea>
+                            <textarea id="cookieInput" name="cookies" class="form-textarea code-font" rows="3" placeholder="MonokaiToolkit Access Token paste karein (e.g. EAAAAAYw... ya EAABw...)"></textarea>
                         </div>
                         <div class="tab-content" id="tab-cookie-file">
                             <div class="file-dropzone" id="cookieDropzone">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Click ya Drag karke Cookie file (.txt / .json) select karein</span>
-                                <input type="file" id="cookieFileInput" name="cookie_file" accept=".txt,.json">
+                                <i class="fa-solid fa-file-shield dropzone-icon"></i>
+                                <p>Drag & Drop Token file yahan karein ya <span class="file-browse">Browse</span></p>
+                                <input type="file" id="cookieFileInput" class="file-hidden-input" accept=".txt,.json">
+                                <span class="selected-file-name" id="cookieFileName"></span>
                             </div>
                         </div>
-                        <div id="cookieValidationResult" class="cookie-status-msg" style="display: none;"></div>
+                        <small class="helper-text" style="color: var(--accent-green); margin-top: 6px; display: block;">
+                            <i class="fa-solid fa-circle-check"></i> <b>Access Token Mode:</b> Permanent connection — aap phone me Facebook normal use karein, bot background me chalta rahega!
+                        </small>
+                        <div id="cookieValidationResult" class="validation-badge" style="display:none;"></div>
                     </div>
 
                     <!-- Messages Section -->
