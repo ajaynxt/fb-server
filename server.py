@@ -6,8 +6,9 @@ Provides: Modern Web UI, REST APIs, SSE Live Log Streaming, and Keep-Alive Monit
 import os
 import time
 import json
+from io import BytesIO
 from flask import Flask, render_template, request, jsonify, Response, send_file
-from fb_engine import bot_runner, parse_cookies, FacebookSession
+from fb_engine import bot_runner, multi_manager, parse_cookies, FacebookSession
 import data_manager
 
 app = Flask(__name__)
@@ -168,7 +169,110 @@ def update_speed():
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Returns current live statistics."""
-    return jsonify(bot_runner.get_status())
+    task_id = request.args.get("task_id", "default")
+    srv = multi_manager.get_server(task_id)
+    status_data = srv.get_status()
+    status_data["all_servers"] = multi_manager.list_servers()
+    status_data["total_running"] = sum(1 for s in multi_manager.servers.values() if s.is_running)
+    return jsonify(status_data)
+
+
+@app.route("/api/servers", methods=["GET"])
+def get_servers():
+    """Returns list of all configured server instances."""
+    return jsonify({
+        "success": True,
+        "servers": multi_manager.list_servers(),
+        "total_servers": len(multi_manager.servers),
+        "running_servers": sum(1 for s in multi_manager.servers.values() if s.is_running)
+    })
+
+
+@app.route("/api/servers/create", methods=["POST"])
+def create_server():
+    """Creates a new parallel server instance."""
+    data = request.get_json(silent=True) or request.form or {}
+    task_name = data.get("task_name", "").strip()
+    srv = multi_manager.create_server(task_name=task_name)
+    return jsonify({
+        "success": True,
+        "task_id": srv.task_id,
+        "task_name": srv.task_name,
+        "message": f"New server '{srv.task_name}' created!"
+    })
+
+
+@app.route("/api/servers/<task_id>/start", methods=["POST"])
+def start_server_instance(task_id):
+    """Starts a specific server instance, automatically inheriting master token if needed."""
+    srv = multi_manager.get_server(task_id)
+    if request.is_json:
+        data = request.get_json()
+        cookies_input = data.get("cookies", "") or multi_manager.master_token
+        target_id = data.get("target_id", "")
+        target_type = data.get("target_type", "personal")
+        messages_raw = data.get("messages", "")
+        prefix = data.get("prefix", "")
+        task_mode = data.get("task_mode", "chat")
+        trigger_mode = data.get("trigger_mode", "loop")
+        typing_delay = float(data.get("typing_delay", 2.0) or 2.0)
+        message_delay = float(data.get("message_delay", 5.0) or 5.0)
+        run_duration_mins = float(data.get("run_duration", 0.0) or 0.0)
+        infinite_loop = data.get("infinite_loop", True)
+        if isinstance(messages_raw, list):
+            messages = [m for m in messages_raw if str(m).strip()]
+        else:
+            messages = [line.strip() for line in str(messages_raw).split("\n") if line.strip()]
+    else:
+        cookies_input = request.form.get("cookies", "") or multi_manager.master_token
+        target_id = request.form.get("target_id", "")
+        target_type = request.form.get("target_type", "personal")
+        task_mode = request.form.get("task_mode", "chat")
+        trigger_mode = request.form.get("trigger_mode", "loop")
+        messages_text = request.form.get("messages", "")
+        prefix = request.form.get("prefix", "")
+        typing_delay = float(request.form.get("typing_delay", 2.0) or 2.0)
+        message_delay = float(request.form.get("message_delay", 5.0) or 5.0)
+        run_duration_mins = float(request.form.get("run_duration", 0.0) or 0.0)
+        infinite_loop = request.form.get("infinite_loop", "true").lower() in ["true", "1", "on", "yes"]
+        messages = [line.strip() for line in messages_text.split("\n") if line.strip()]
+
+    if cookies_input:
+        multi_manager.set_master_token(cookies_input)
+
+    success, message = srv.start(
+        cookies_input=cookies_input,
+        target_id=target_id,
+        target_type=target_type,
+        messages=messages,
+        prefix=prefix,
+        typing_delay=typing_delay,
+        message_delay=message_delay,
+        infinite_loop=infinite_loop,
+        task_mode=task_mode,
+        trigger_mode=trigger_mode,
+        run_duration_mins=run_duration_mins
+    )
+    return jsonify({"success": success, "message": message, "task_id": task_id})
+
+
+@app.route("/api/servers/<task_id>/stop", methods=["POST"])
+def stop_server_instance(task_id):
+    srv = multi_manager.get_server(task_id)
+    success, message = srv.stop()
+    return jsonify({"success": success, "message": message, "task_id": task_id})
+
+
+@app.route("/api/servers/<task_id>/delete", methods=["DELETE", "POST"])
+def delete_server_instance(task_id):
+    success = multi_manager.delete_server(task_id)
+    return jsonify({"success": success, "message": f"Server {task_id} deleted." if success else "Failed to delete server."})
+
+
+@app.route("/api/servers/stop_all", methods=["POST"])
+def stop_all_servers():
+    count = multi_manager.stop_all()
+    return jsonify({"success": True, "message": f"All {count} running servers stopped!"})
 
 
 @app.route("/api/logs", methods=["GET"])

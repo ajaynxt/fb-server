@@ -134,6 +134,32 @@
             </div>
         </section>
 
+        <!-- Multi-Server Runner Hub (1 Token se Multiple Targets/Bots) -->
+        <section class="card multi-server-card">
+            <div class="multi-header">
+                <div class="multi-title">
+                    <i class="fa-solid fa-network-wired" style="color:var(--accent-cyan)"></i>
+                    <div>
+                        <h3>Multi-Server Runner Hub <span class="badge-tag" style="background:rgba(0,242,254,0.15); color:var(--accent-cyan); border-color:rgba(0,242,254,0.3)">1 TOKEN • MULTIPLE CHATS</span></h3>
+                        <p style="font-size:0.75rem; color:var(--text-secondary)">Ek hi Facebook Token se multiple chats/groups par ek sath parallel bot servers chalayein.</p>
+                    </div>
+                </div>
+                <div class="multi-actions">
+                    <button type="button" id="btnAddNewServer" class="btn-text" style="background:rgba(0,132,255,0.15); border:1px solid rgba(0,132,255,0.3); color:var(--accent-cyan); padding:8px 14px; border-radius:var(--radius-sm)">
+                        <i class="fa-solid fa-plus"></i> Add New Target Server
+                    </button>
+                    <button type="button" id="btnStopAllServers" class="btn-text" style="background:rgba(255,23,68,0.15); border:1px solid rgba(255,23,68,0.3); color:var(--accent-red); padding:8px 14px; border-radius:var(--radius-sm)">
+                        <i class="fa-solid fa-stop"></i> Stop All Servers
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Server Instances Grid -->
+            <div class="server-instances-grid" id="serverInstancesGrid">
+                <!-- Dynamically Populated by JS -->
+            </div>
+        </section>
+
         <!-- Main Workspace -->
         <main class="main-layout">
             <!-- Left Side: Configuration & Controls -->
@@ -141,7 +167,7 @@
                 <div class="card-header">
                     <div class="header-title">
                         <i class="fa-solid fa-sliders"></i>
-                        <h2>Bot Configuration & Controls</h2>
+                        <h2 id="currentConfigServerTitle">Config: Primary Server #1</h2>
                     </div>
                     <!-- Big Quick Action Buttons (PythonAnywhere Style) -->
                     <div class="top-actions">
@@ -155,6 +181,7 @@
                 </div>
 
                 <form id="botConfigForm" class="config-form">
+                    <input type="hidden" id="currentTaskIdInput" name="task_id" value="default">
                     <!-- Session Auto-Save Banner -->
                     <div class="session-remember-banner">
                         <div class="banner-left">

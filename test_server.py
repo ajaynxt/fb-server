@@ -122,5 +122,30 @@ class TestFBServer(unittest.TestCase):
         res_del = self.app.delete("/api/files/test_msgs.txt")
         self.assertEqual(res_del.status_code, 200)
 
+    def test_multi_server_endpoints(self):
+        # 1. List servers
+        res = self.app.get("/api/servers")
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data.get("success"))
+        self.assertGreaterEqual(data.get("total_servers", 0), 1)
+
+        # 2. Create new server
+        res_create = self.app.post("/api/servers/create", json={"task_name": "Server 2 - Group War"})
+        self.assertEqual(res_create.status_code, 200)
+        c_data = res_create.get_json()
+        self.assertTrue(c_data.get("success"))
+        task_id = c_data.get("task_id")
+        self.assertIsNotNone(task_id)
+
+        # 3. Stop all servers
+        res_stop = self.app.post("/api/servers/stop_all")
+        self.assertEqual(res_stop.status_code, 200)
+
+        # 4. Delete server
+        res_del = self.app.delete(f"/api/servers/{task_id}/delete")
+        self.assertEqual(res_del.status_code, 200)
+        self.assertTrue(res_del.get_json().get("success"))
+
 if __name__ == "__main__":
     unittest.main()

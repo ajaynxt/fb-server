@@ -334,7 +334,7 @@ class FacebookSession:
         """
         Dispatches message to Facebook Messenger (personal UID or group thread_id).
         Tries:
-        1. Direct mbasic Mobile Composer (with full dynamic hidden field extraction)
+        1. Direct mbasic Mobile Composer (with flexible regex and full dynamic hidden field extraction)
         2. Direct mbasic Thread Reader (cid.c.{thread_id}:{self.user_id} or cid.g.{thread_id})
         3. Web Mercury AJAX Send Messages
         4. Graph API (if Access Token provided)
@@ -352,7 +352,12 @@ class FacebookSession:
 
             for c_url in compose_urls:
                 get_res = self.session.get(c_url, headers={"User-Agent": MOBILE_UA}, timeout=12)
-                form_match = re.search(r'<form\s+action="([^"]+)"[^>]*method=["\']post["\']', get_res.text, re.IGNORECASE)
+                
+                # Attribute-agnostic form action matching (matches method before action or action before method)
+                form_match = re.search(r'<form[^>]*\s+action=["\']([^"\']+)["\']', get_res.text, re.IGNORECASE)
+                if not form_match:
+                    form_match = re.search(r'action=["\']([^"\']+)["\']', get_res.text, re.IGNORECASE)
+
                 if form_match:
                     post_action = form_match.group(1).replace("&amp;", "&")
                     if not post_action.startswith("http"):
@@ -362,8 +367,8 @@ class FacebookSession:
                     form_data = {}
                     inputs = re.findall(r'<input\s+[^>]*>', get_res.text, re.IGNORECASE)
                     for inp in inputs:
-                        name_m = re.search(r'name=["\']([^"\']+)["\']', inp)
-                        val_m = re.search(r'value=["\']([^"\']*)["\']', inp)
+                        name_m = re.search(r'name=["\']([^"\']+)["\']', inp, re.IGNORECASE)
+                        val_m = re.search(r'value=["\']([^"\']*)["\']', inp, re.IGNORECASE)
                         if name_m:
                             name = name_m.group(1)
                             val = val_m.group(1) if val_m else ""
@@ -377,7 +382,10 @@ class FacebookSession:
                     if not is_group and f"ids[{thread_id}]" not in form_data:
                         form_data[f"ids[{thread_id}]"] = str(thread_id)
 
-                    form_data["body"] = message_text
+                    # Dynamic textarea name detection (body or message_text)
+                    textarea_m = re.search(r'<textarea[^>]*name=["\']([^"\']+)["\']', get_res.text, re.IGNORECASE)
+                    body_key = textarea_m.group(1) if textarea_m else "body"
+                    form_data[body_key] = message_text
                     form_data["Send"] = "Send"
                     form_data["send"] = "Send"
 
@@ -389,12 +397,9 @@ class FacebookSession:
                     }
 
                     send_res = self.session.post(post_action, data=form_data, headers=headers_post, timeout=12, allow_redirects=True)
-                    # Successful delivery if status 200/302 and no checkpoint/error page
                     if send_res.status_code in [200, 302]:
                         if "checkpoint" not in send_res.url and "error" not in send_res.url:
-                            # Verify if body text or thread rendered
-                            if "messages/read" in send_res.url or "send_success" in send_res.text or len(send_res.history) > 0 or send_res.status_code == 200:
-                                return True, "Delivered via Mobile Engine"
+                            return True, "Delivered via Mobile Form Engine"
         except Exception:
             pass
 
@@ -438,6 +443,7 @@ class FacebookSession:
                 payload["message_batch[0][client_thread_id]"] = f"root:{thread_id}"
             else:
                 payload["message_batch[0][other_user_fbid]"] = str(thread_id)
+                payload["message_batch[0][thread_fbid]"] = str(thread_id)
                 payload["message_batch[0][specific_to_list][0]"] = f"fbid:{thread_id}"
                 payload["message_batch[0][specific_to_list][1]"] = f"fbid:{self.user_id}"
                 payload["message_batch[0][client_thread_id]"] = f"user:{thread_id}"
@@ -628,7 +634,9 @@ class BotRunner:
     3. Infinite file repeat, live speed adjustment, and zero-crash error recovery.
     """
 
-    def __init__(self):
+    def __init__(self, task_id: str = "default", task_name: str = "Primary Server #1"):
+        self.task_id = task_id
+        self.task_name = task_name
         self.thread = None
         self.stop_event = threading.Event()
         self.pause_event = threading.Event()
@@ -1019,6 +1027,8 @@ class BotRunner:
             uptime_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
         return {
+            "task_id": getattr(self, "task_id", "default"),
+            "task_name": getattr(self, "task_name", "Primary Server #1"),
             "is_running": self.is_running,
             "status": self.status,
             "task_mode": self.task_mode,
@@ -1039,5 +1049,66 @@ class BotRunner:
         }
 
 
-# Global instance
-bot_runner = BotRunner()
+class MultiServerManager:
+    """
+    Manages multiple parallel BotRunner server instances running on the same master Facebook Token or different tokens.
+    Allows spawning unlimited independent target servers simultaneously!
+    """
+    def __init__(self):
+        self.servers: dict[str, BotRunner] = {}
+        self.master_token: str = ""
+        # Initialize primary server
+        default_runner = BotRunner(task_id="default", task_name="Primary Server #1")
+        self.servers["default"] = default_runner
+
+    def set_master_token(self, token: str):
+        self.master_token = token.strip()
+
+    def get_server(self, task_id: str = "default") -> BotRunner:
+        if task_id not in self.servers:
+            idx = len(self.servers) + 1
+            self.servers[task_id] = BotRunner(task_id=task_id, task_name=f"Server #{idx}")
+        return self.servers[task_id]
+
+    def create_server(self, task_name: str = "", task_id: str = None) -> BotRunner:
+        if not task_id:
+            task_id = f"srv_{int(time.time()*1000)%100000}_{len(self.servers)+1}"
+        if not task_name:
+            task_name = f"Server #{len(self.servers)+1}"
+        srv = BotRunner(task_id=task_id, task_name=task_name)
+        self.servers[task_id] = srv
+        return srv
+
+    def list_servers(self) -> list:
+        result = []
+        for sid, srv in list(self.servers.items()):
+            st = srv.get_status()
+            st["task_id"] = sid
+            st["task_name"] = srv.task_name
+            result.append(st)
+        return result
+
+    def stop_all(self) -> int:
+        stopped = 0
+        for sid, srv in self.servers.items():
+            if srv.is_running:
+                srv.stop()
+                stopped += 1
+        return stopped
+
+    def delete_server(self, task_id: str) -> bool:
+        if task_id == "default":
+            self.servers["default"].stop()
+            return True
+        if task_id in self.servers:
+            srv = self.servers[task_id]
+            if srv.is_running:
+                srv.stop()
+            del self.servers[task_id]
+            return True
+        return False
+
+
+# Global Manager & Default Instance
+multi_manager = MultiServerManager()
+bot_runner = multi_manager.get_server("default")

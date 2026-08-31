@@ -711,7 +711,194 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Restore on load
-    restoreSavedSession();
+    restoreSaved();
+
+    // =========================================================================
+    // MULTI-SERVER RUNNER MANAGER (1 TOKEN -> MULTIPLE BOTS/TARGETS)
+    // =========================================================================
+    const btnAddNewServer = document.getElementById("btnAddNewServer");
+    const btnStopAllServers = document.getElementById("btnStopAllServers");
+    const serverInstancesGrid = document.getElementById("serverInstancesGrid");
+    const currentConfigServerTitle = document.getElementById("currentConfigServerTitle");
+    const currentTaskIdInput = document.getElementById("currentTaskIdInput");
+
+    let currentSelectedTaskId = "default";
+    let allServersData = [];
+
+    async function loadServerInstances() {
+        if (!serverInstancesGrid) return;
+        try {
+            const res = await fetch("/api/servers");
+            const data = await res.json();
+            if (data.success && data.servers) {
+                allServersData = data.servers;
+                renderServerInstances(data.servers);
+            }
+        } catch (e) {}
+    }
+
+    function renderServerInstances(servers) {
+        if (!serverInstancesGrid) return;
+        serverInstancesGrid.innerHTML = "";
+
+        servers.forEach(srv => {
+            const isSelected = srv.task_id === currentSelectedTaskId;
+            const card = document.createElement("div");
+            card.className = `server-instance-card ${isSelected ? 'active-server' : ''}`;
+            card.dataset.taskId = srv.task_id;
+
+            let statusClass = "status-stopped";
+            if (srv.is_running) {
+                statusClass = srv.status === "TYPING" ? "status-typing" : "status-running";
+            }
+
+            card.innerHTML = `
+                <div class="instance-top">
+                    <span class="instance-name">
+                        <i class="fa-solid fa-server" style="color: ${srv.is_running ? 'var(--accent-green)' : 'var(--text-muted)'}"></i>
+                        ${srv.task_name || 'Server'}
+                    </span>
+                    <span class="instance-status ${statusClass}">${srv.status || 'STOPPED'}</span>
+                </div>
+                <div class="instance-details">
+                    <div>🎯 Target: <b>${srv.target_id || 'Not Set'}</b> (${srv.target_type || 'chat'})</div>
+                    <div>📨 Sent: <b>${srv.total_sent || 0}</b> | Loop: <b>#${srv.loop_count || 0}</b> | Line: <b>${srv.current_line || 0}/${srv.total_lines || 0}</b></div>
+                    <div>⏱️ Speed: <b>${srv.message_delay || 5}s</b> interval | Uptime: <b>${srv.uptime || '00:00:00'}</b></div>
+                </div>
+                <div class="instance-actions">
+                    <button type="button" class="btn-inst-action btn-inst-configure" data-action="select" data-id="${srv.task_id}">
+                        <i class="fa-solid fa-pen-to-square"></i> ${isSelected ? 'Active (Editing)' : 'Select & Edit'}
+                    </button>
+                    ${srv.is_running ? `
+                        <button type="button" class="btn-inst-action btn-inst-stop" data-action="stop" data-id="${srv.task_id}">
+                            <i class="fa-solid fa-stop"></i> Stop
+                        </button>
+                    ` : `
+                        <button type="button" class="btn-inst-action btn-inst-start" data-action="start" data-id="${srv.task_id}">
+                            <i class="fa-solid fa-play"></i> Start
+                        </button>
+                    `}
+                    ${srv.task_id !== 'default' ? `
+                        <button type="button" class="btn-inst-action btn-inst-delete" data-action="delete" data-id="${srv.task_id}" title="Delete Server">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            serverInstancesGrid.appendChild(card);
+        });
+    }
+
+    // Server Grid Action Click Listener
+    if (serverInstancesGrid) {
+        serverInstancesGrid.addEventListener("click", async (e) => {
+            const btn = e.target.closest("button[data-action]");
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const taskId = btn.dataset.id;
+
+            if (action === "select") {
+                selectServerForConfig(taskId);
+            } else if (action === "start") {
+                selectServerForConfig(taskId);
+                btnStart.click();
+            } else if (action === "stop") {
+                try {
+                    const res = await fetch(`/api/servers/${taskId}/stop`, { method: "POST" });
+                    const d = await res.json();
+                    showToast(d.message || "Server stopped.", "info");
+                    loadServerInstances();
+                } catch (err) {
+                    showToast("Failed to stop server", "error");
+                }
+            } else if (action === "delete") {
+                if (confirm(`Kya aap is server (${taskId}) ko delete karna chahte hain?`)) {
+                    try {
+                        const res = await fetch(`/api/servers/${taskId}/delete`, { method: "POST" });
+                        const d = await res.json();
+                        showToast(d.message || "Server deleted.", "info");
+                        if (currentSelectedTaskId === taskId) {
+                            selectServerForConfig("default");
+                        }
+                        loadServerInstances();
+                    } catch (err) {
+                        showToast("Failed to delete server", "error");
+                    }
+                }
+            }
+        });
+    }
+
+    function selectServerForConfig(taskId) {
+        currentSelectedTaskId = taskId;
+        if (currentTaskIdInput) currentTaskIdInput.value = taskId;
+
+        const srv = allServersData.find(s => s.task_id === taskId);
+        if (srv) {
+            if (currentConfigServerTitle) {
+                currentConfigServerTitle.textContent = `Config: ${srv.task_name} (${srv.is_running ? '🟢 RUNNING' : '⚪ STOPPED'})`;
+            }
+            if (srv.target_id && targetIdInput) {
+                targetIdInput.value = srv.target_id;
+                parseTargetLink(srv.target_id);
+            }
+            if (srv.prefix && prefixInput) {
+                prefixInput.value = srv.prefix;
+            }
+            if (srv.typing_delay && srv.message_delay) {
+                setSpeed(srv.typing_delay, srv.message_delay);
+            }
+            updateUIState(srv.is_running);
+        }
+        renderServerInstances(allServersData);
+        showToast(`Switched to ${srv ? srv.task_name : taskId}`, "info");
+    }
+
+    // Add New Server Button Handler
+    if (btnAddNewServer) {
+        btnAddNewServer.addEventListener("click", async () => {
+            const serverName = prompt("Naye Bot Server ka Naam rakhein (e.g. Server 2 - Group War):", `Server #${allServersData.length + 1}`);
+            if (!serverName) return;
+
+            try {
+                const res = await fetch("/api/servers/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ task_name: serverName })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, "success");
+                    await loadServerInstances();
+                    selectServerForConfig(data.task_id);
+                }
+            } catch (err) {
+                showToast("Failed to create new server", "error");
+            }
+        });
+    }
+
+    // Stop All Servers Button Handler
+    if (btnStopAllServers) {
+        btnStopAllServers.addEventListener("click", async () => {
+            if (confirm("Kya aap sabhi chalte hue Bot Servers ko ek sath STOP karna chahte hain?")) {
+                try {
+                    const res = await fetch("/api/servers/stop_all", { method: "POST" });
+                    const data = await res.json();
+                    showToast(data.message, "info");
+                    loadServerInstances();
+                    updateUIState(false);
+                } catch (err) {
+                    showToast("Failed to stop all servers", "error");
+                }
+            }
+        });
+    }
+
+    // Poll server instances list every 3 seconds
+    setInterval(loadServerInstances, 3000);
+    loadServerInstances();
 
     // --- Start Bot ---
     btnStart.addEventListener("click", async (e) => {
@@ -730,7 +917,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const cookieText = formData.get("cookies");
         const cookieFile = cookieFileInput.files[0];
         if (!cookieText.trim() && !cookieFile) {
-            showToast("Facebook Cookies provide karein!", "error");
+            showToast("Facebook Access Token provide karein!", "error");
             return;
         }
 
@@ -745,7 +932,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnStart.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> STARTING...`;
 
         try {
-            const res = await fetch("/api/start", {
+            const res = await fetch(`/api/servers/${currentSelectedTaskId}/start`, {
                 method: "POST",
                 body: formData
             });
@@ -754,6 +941,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success) {
                 showToast(data.message, "success");
                 updateUIState(true);
+                loadServerInstances();
             } else {
                 showToast(data.message || "Failed to start bot.", "error");
                 btnStart.disabled = false;
@@ -772,12 +960,17 @@ document.addEventListener("DOMContentLoaded", () => {
         btnStop.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> STOPPING...`;
 
         try {
-            const res = await fetch("/api/stop", { method: "POST" });
+            const res = await fetch(`/api/servers/${currentSelectedTaskId}/stop`, {
+                method: "POST"
+            });
             const data = await res.json();
+
             showToast(data.message, "info");
             updateUIState(false);
+            loadServerInstances();
         } catch (err) {
-            showToast(`Error stopping bot: ${err.message}`, "error");
+            showToast("Stop command failed.", "error");
+            updateUIState(false);
         } finally {
             btnStop.innerHTML = `<i class="fa-solid fa-stop"></i> STOP BOT`;
         }
