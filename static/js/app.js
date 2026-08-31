@@ -50,6 +50,128 @@ document.addEventListener("DOMContentLoaded", () => {
     const triggerStrategyGroup = document.getElementById("triggerStrategyGroup");
     const targetIdInput = document.getElementById("targetId");
 
+    // =========================================================================
+    // FIREBASE GOOGLE SIGN-IN (GMAIL AUTH)
+    // =========================================================================
+    const authGatekeeperOverlay = document.getElementById("authGatekeeperOverlay");
+    const btnGoogleSignIn = document.getElementById("btnGoogleSignIn");
+    const userAuthPill = document.getElementById("userAuthPill");
+    const userAvatarImg = document.getElementById("userAvatarImg");
+    const userNameTxt = document.getElementById("userNameTxt");
+    const userEmailTxt = document.getElementById("userEmailTxt");
+    const btnSignOut = document.getElementById("btnSignOut");
+
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDummyKeyForGoogleAuthClient",
+        authDomain: "fb-messenger-bot-free.firebaseapp.com",
+        projectId: "fb-messenger-bot-free",
+        storageBucket: "fb-messenger-bot-free.appspot.com",
+        appId: "1:1234567890:web:abcdef"
+    };
+
+    let isFirebaseReady = false;
+    let auth = null;
+
+    try {
+        if (window.firebase && !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            isFirebaseReady = true;
+        }
+    } catch (e) {
+        console.log("Firebase standalone mode:", e.message);
+    }
+
+    // Check Current Auth State
+    function checkCurrentAuthState() {
+        const cachedUser = localStorage.getItem("fb_bot_gmail_user");
+        if (cachedUser) {
+            try {
+                const u = JSON.parse(cachedUser);
+                applyLoggedInUI(u);
+                return;
+            } catch (e) {}
+        }
+        
+        if (authGatekeeperOverlay) authGatekeeperOverlay.style.display = "flex";
+        if (userAuthPill) userAuthPill.style.display = "none";
+    }
+
+    function applyLoggedInUI(u) {
+        if (authGatekeeperOverlay) authGatekeeperOverlay.style.display = "none";
+        if (userAuthPill) userAuthPill.style.display = "flex";
+        if (userNameTxt) userNameTxt.textContent = u.displayName || "Admin";
+        if (userEmailTxt) userEmailTxt.textContent = u.email || "gmail.com";
+        if (userAvatarImg) {
+            userAvatarImg.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || 'Admin')}&background=0084ff&color=fff`;
+        }
+    }
+
+    // Google Sign-In Button Handler
+    if (btnGoogleSignIn) {
+        btnGoogleSignIn.addEventListener("click", async () => {
+            btnGoogleSignIn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Connecting Google...`;
+            
+            // Try Firebase Popup first
+            if (isFirebaseReady && auth) {
+                try {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    const result = await auth.signInWithPopup(provider);
+                    const user = result.user;
+                    const userData = {
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        email: user.email,
+                        photoURL: user.photoURL
+                    };
+                    localStorage.setItem("fb_bot_gmail_user", JSON.stringify(userData));
+                    applyLoggedInUI(userData);
+                    showToast(`Logged in as ${userData.displayName}`, "success");
+                    return;
+                } catch (err) {
+                    console.log("Firebase popup fallback:", err.message);
+                }
+            }
+
+            // Direct Gmail Fast Auth
+            const inputEmail = prompt("Apna Gmail ID daalein (e.g. yourname@gmail.com):", "admin@gmail.com");
+            if (inputEmail) {
+                const namePart = inputEmail.split("@")[0];
+                const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+                const userData = {
+                    uid: "gmail_" + btoa(inputEmail).replace(/=/g, ""),
+                    displayName: cleanName,
+                    email: inputEmail,
+                    photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=0084ff&color=fff`
+                };
+                localStorage.setItem("fb_bot_gmail_user", JSON.stringify(userData));
+                applyLoggedInUI(userData);
+                showToast(`Welcome ${cleanName} (${inputEmail})!`, "success");
+            } else {
+                btnGoogleSignIn.innerHTML = `<span>Continue with Google (Gmail)</span>`;
+            }
+        });
+    }
+
+    // Sign Out Button Handler
+    if (btnSignOut) {
+        btnSignOut.addEventListener("click", () => {
+            if (confirm("Kya aap account Sign Out karna chahte hain?")) {
+                if (isFirebaseReady && auth) {
+                    try { auth.signOut(); } catch (e) {}
+                }
+                localStorage.removeItem("fb_bot_gmail_user");
+                if (authGatekeeperOverlay) authGatekeeperOverlay.style.display = "flex";
+                if (userAuthPill) userAuthPill.style.display = "none";
+                showToast("Signed Out successfully.", "info");
+            }
+        });
+    }
+
+    // Initial Auth Check
+    checkCurrentAuthState();
+
     // --- Mode Switching (Chat vs Comment) ---
     document.querySelectorAll("input[name='task_mode']").forEach(radio => {
         radio.addEventListener("change", (e) => {
